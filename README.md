@@ -191,7 +191,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 <summary><strong>Request</strong></summary>
 
 - Path Variable
-  - `projectId` (long): 프로젝트 ID
+    - `projectId` (long): 프로젝트 ID
 
 </details>
 
