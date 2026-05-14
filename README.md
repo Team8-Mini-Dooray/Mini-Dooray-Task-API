@@ -198,15 +198,8 @@ Task-Api는 세션이나 로그인을 직접 확인하지 않고, 전달받은 `
 [
   {
     "projectId": 1,
-    "name": "미니 두레이",
-    "status": "ACTIVE",
-    "adminId": "user1"
-  },
-  {
-    "projectId": 2,
-    "name": "쇼핑몰 프로젝트",
-    "status": "DORMANT",
-    "adminId": "user2"
+    "name": "Project A",
+    "status": "ACTIVE"
   }
 ]
 ```
@@ -263,9 +256,24 @@ Task-Api는 세션이나 로그인을 직접 확인하지 않고, 전달받은 `
   "projectId": 1,
   "name": "미니 두레이",
   "status": "ACTIVE",
-  "adminId": "user1",
-  "createdAt": "2026-05-14T10:30:00",
-  "updatedAt": "2026-05-14T10:30:00"
+  "members": [ { "userId": "user123" } ],
+  "tasks": [
+    {
+      "taskId": 1,
+      "title": "Task 1",
+      "content": "Content...",
+      "writerId": "user123",
+      "createdAt": "2023-10-27T10:00:00"
+    }
+  ],
+  "milestones": [
+    {
+      "milestoneId": 1,
+      "name": "Sprint 1",
+      "startDate": "2023-10-01",
+      "endDate": "2023-10-15"
+    }
+  ]
 }
 ```
 
@@ -1119,6 +1127,59 @@ Task-Api는 세션이나 로그인을 직접 확인하지 않고, 전달받은 `
 
 </details>
 
+### 6.5 마일스톤 설정
+
+- **[POST]** `/projects/{projectId}/tasks/{taskId}/milestones`
+- **설명**: 마일스톤을 설정합니다.
+
+<details>
+<summary><strong>Header</strong></summary>
+
+
+- `X-User-Id` (string): `user1`
+
+</details>
+
+<details>
+<summary><strong>Request</strong></summary>
+
+
+```json
+{
+  "milestoneId": 2
+}
+```
+</details>
+
+<details>
+<summary><strong>Response</strong></summary>
+
+
+<Success> 204 No Content
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+
+- `MILESTONE_NOT_FOUND` (404): 마일스톤을 찾을 수 없습니다.
+- `MILESTONE_NOT_IN_PROJECT` (400): 해당 마일스톤이 요청한 프로젝트 소속이 아닙니다.
+- `NOT_PROJECT_MEMBER` (403): 요청자가 프로젝트 멤버가 아닙니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 마일스톤을 삭제할 수 없습니다.
+
+</details>
+
+<details>
+<summary><strong>예외</strong></summary>
+
+
+1. 프로젝트 멤버만 삭제할 수 있습니다.
+2. `milestoneId`가 해당 `projectId` 소속인지 확인합니다.
+3. 마일스톤 삭제 시 `tasks.milestone_id`는 DB의 `ON DELETE SET NULL`로 자동 NULL 처리됩니다.
+
+</details>
+
 ---
 
 ## 7. Task API
@@ -1220,10 +1281,10 @@ Task-Api는 세션이나 로그인을 직접 확인하지 않고, 전달받은 `
 
 ```json
 {
-  "title": "Task API Entity 작성",
-  "content": "Project, Task, Comment Entity 작성",
-  "milestoneId": 1,
-  "tagIds": [1, 2]
+  "projectId": 1,
+  "title": "New Task",
+  "content": "Task Content",
+  "writerId": "user123"
 }
 ```
 
@@ -1322,36 +1383,12 @@ Task-Api는 세션이나 로그인을 직접 확인하지 않고, 전달받은 `
 ```json
 {
   "taskId": 1,
-  "projectId": 1,
-  "title": "Task API Entity 작성",
-  "content": "Project, Task, Comment Entity 작성",
-  "writerId": "user1",
-  "milestone": {
-    "milestoneId": 1,
-    "name": "1차 구현"
-  },
-  "tags": [
-    {
-      "tagId": 1,
-      "name": "백엔드"
-    },
-    {
-      "tagId": 2,
-      "name": "긴급"
-    }
-  ],
-  "comments": [
-    {
-      "commentId": 1,
-      "writerId": "user2",
-      "content": "확인했습니다.",
-      "createdAt": "2026-05-14T11:00:00",
-      "updatedAt": "2026-05-14T11:00:00"
-    }
-  ],
-  "createdAt": "2026-05-14T10:30:00",
-  "updatedAt": "2026-05-14T10:30:00"
+  "title": "Task 1",
+  "content": "Detailed Content",
+  "writerId": "user123",
+  "createdAt": "2023-10-27T10:00:00"
 }
+
 ```
 
 </details>
@@ -1398,10 +1435,8 @@ Task-Api는 세션이나 로그인을 직접 확인하지 않고, 전달받은 `
 
 ```json
 {
-  "title": "Task API Service 작성",
-  "content": "Task 생성/수정/삭제 Service 구현",
-  "milestoneId": 1,
-  "tagIds": [1]
+  "title": "Updated Title",
+  "content": "Updated Content"
 }
 ```
 
