@@ -18,9 +18,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 2.1 Base URL
 
-```http
-/api
-```
+Gateway 요청 경로 기준으로 작성합니다.
 
 ### 2.2 공통 Header
 
@@ -36,7 +34,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
   "status": 404,
   "code": "PROJECT_NOT_FOUND",
   "message": "프로젝트를 찾을 수 없습니다.",
-  "path": "/api/projects/1"
+  "path": "/projects/1"
 }
 ```
 
@@ -127,7 +125,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 4.1 프로젝트 목록 조회
 
-- **Method URL**: `GET /api/projects`
+- **Method URL**: `GET /projects`
 - **설명**: 로그인 사용자가 멤버로 속한 프로젝트 목록을 조회합니다.
 - **Request DTO**: 없음
 - **Response DTO**: `List<ProjectDto>`
@@ -177,7 +175,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 4.2 프로젝트 상세 조회
 
-- **Method URL**: `GET /api/projects/{projectId}`
+- **Method URL**: `GET /projects/{projectId}`
 - **설명**: 프로젝트 상세 정보, 멤버, Task 목록, 마일스톤 목록을 조회합니다.
 - **Request DTO**: 없음
 - **Response DTO**: `ProjectDetailDto`
@@ -249,7 +247,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 4.3 프로젝트 생성
 
-- **Method URL**: `POST /api/projects`
+- **Method URL**: `POST /projects`
 - **설명**: 프로젝트를 생성합니다. 생성자는 프로젝트 관리자이며 동시에 프로젝트 멤버로 등록됩니다.
 - **Request DTO**: `ProjectCreateRequest`
 - **Response DTO**: `ProjectDto`
@@ -303,7 +301,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 4.4 프로젝트 수정
 
-- **Method URL**: `PUT /api/projects/{projectId}`
+- **Method URL**: `POST /projects/{projectId}/edit`
 - **설명**: 프로젝트 이름과 상태를 수정합니다.
 - **Request DTO**: `ProjectUpdateRequest`
 - **Response DTO**: `ProjectDto`
@@ -354,13 +352,12 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 <summary><strong>예외</strong></summary>
 
 1. 프로젝트 관리자만 수정할 수 있습니다.
-2. Gateway의 `POST /projects/{projectId}/edit` 요청은 내부적으로 이 API를 호출합니다.
 
 </details>
 
 ### 4.5 프로젝트 종료
 
-- **Method URL**: `PATCH /api/projects/{projectId}/status`
+- **Method URL**: `POST /projects/{projectId}/close`
 - **설명**: 프로젝트 상태를 변경합니다. 프로젝트 종료는 `status=TERMINATED`로 처리합니다.
 - **Request DTO**: `ProjectUpdateRequest`
 - **Response DTO**: `ProjectDto`
@@ -410,8 +407,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 <summary><strong>예외</strong></summary>
 
 1. 프로젝트 관리자만 상태를 변경할 수 있습니다.
-2. Gateway의 `POST /projects/{projectId}/close` 요청은 내부적으로 이 API를 호출합니다.
-3. `ProjectUpdateRequest.status` 주석에는 `CLOSED`가 남아 있지만 Task-Api의 종료 상태는 `TERMINATED`로 통일합니다.
+2. `ProjectUpdateRequest.status` 주석에는 `CLOSED`가 남아 있지만 종료 상태는 `TERMINATED`로 통일합니다.
 
 </details>
 
@@ -421,7 +417,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 5.1 프로젝트 멤버 목록 조회
 
-- **Method URL**: `GET /api/projects/{projectId}/members`
+- **Method URL**: `GET /projects/{projectId}/members`
 - **설명**: 프로젝트 멤버 목록을 조회합니다.
 - **Request DTO**: 없음
 - **Response DTO**: `List<ProjectMemberDto>`
@@ -459,7 +455,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 5.2 프로젝트 멤버 추가
 
-- **Method URL**: `POST /api/projects/{projectId}/members`
+- **Method URL**: `POST /projects/{projectId}/members`
 - **설명**: 프로젝트에 멤버를 추가합니다.
 - **Request DTO**: `ProjectMemberRequest`
 - **Response DTO**: `ProjectMemberDto`
@@ -513,7 +509,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 5.3 프로젝트 멤버 삭제
 
-- **Method URL**: `DELETE /api/projects/{projectId}/members/{userId}`
+- **Method URL**: `DELETE /projects/{projectId}/members/{userId}`
 - **설명**: 프로젝트 멤버를 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
@@ -548,7 +544,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 6.1 Task 상세 조회
 
-- **Method URL**: `GET /api/projects/{projectId}/tasks/{taskId}`
+- **Method URL**: `GET /projects/{projectId}/tasks/{taskId}`
 - **설명**: Task 상세 정보를 조회합니다.
 - **Request DTO**: 없음
 - **Response DTO**: `TaskDto`
@@ -586,7 +582,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 6.2 Task 생성
 
-- **Method URL**: `POST /api/projects/{projectId}/tasks`
+- **Method URL**: `POST /projects/{projectId}/tasks`
 - **설명**: 프로젝트에 Task를 생성합니다.
 - **Request DTO**: `TaskCreateRequest`
 - **Response DTO**: `TaskDto`
@@ -647,7 +643,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 6.3 Task 수정
 
-- **Method URL**: `PUT /api/projects/{projectId}/tasks/{taskId}`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/edit`
 - **설명**: Task 제목과 내용을 수정합니다.
 - **Request DTO**: `TaskUpdateRequest`
 - **Response DTO**: `TaskDto`
@@ -691,7 +687,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 6.4 Task 삭제
 
-- **Method URL**: `DELETE /api/projects/{projectId}/tasks/{taskId}`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/delete`
 - **설명**: Task를 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
@@ -707,13 +703,12 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 <summary><strong>예외</strong></summary>
 
 1. Task 삭제 시 `comments`, `task_tags`는 DB의 `ON DELETE CASCADE`로 자동 삭제됩니다.
-2. Gateway의 `POST /projects/{projectId}/tasks/{taskId}/delete` 요청은 내부적으로 이 API를 호출합니다.
 
 </details>
 
 ### 6.5 Task 마일스톤 설정
 
-- **Method URL**: `POST /api/projects/{projectId}/tasks/{taskId}/milestones`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/milestones`
 - **설명**: Task에 마일스톤을 설정합니다.
 - **Request DTO**: `TaskMilestoneRequest`
 - **Response DTO**: `TaskDto`
@@ -740,7 +735,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 6.6 Task 태그 설정
 
-- **Method URL**: `POST /api/projects/{projectId}/tasks/{taskId}/tags`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/tags`
 - **설명**: Task에 Tag를 설정합니다.
 - **Request DTO**: `TaskTagRequest`
 - **Response DTO**: `TaskDto`
@@ -772,7 +767,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 7.1 태그 생성
 
-- **Method URL**: `POST /api/projects/{projectId}/tags`
+- **Method URL**: `POST /projects/{projectId}/tags`
 - **설명**: 프로젝트 태그를 생성합니다.
 - **Request DTO**: `TagCreateRequest`
 - **Response DTO**: 없음
@@ -805,7 +800,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 7.2 태그 수정
 
-- **Method URL**: `PUT /api/projects/{projectId}/tags/{tagId}`
+- **Method URL**: `PUT /projects/{projectId}/tags/{tagId}`
 - **설명**: 태그 이름을 수정합니다.
 - **Request DTO**: `TagCreateRequest`
 - **Response DTO**: 없음
@@ -823,7 +818,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 7.3 태그 삭제
 
-- **Method URL**: `DELETE /api/projects/{projectId}/tags/{tagId}`
+- **Method URL**: `DELETE /projects/{projectId}/tags/{tagId}`
 - **설명**: 태그를 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
@@ -842,7 +837,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 8.1 마일스톤 목록 조회
 
-- **Method URL**: `GET /api/projects/{projectId}/milestones`
+- **Method URL**: `GET /projects/{projectId}/milestones`
 - **설명**: 프로젝트 마일스톤 목록을 조회합니다.
 - **Request DTO**: 없음
 - **Response DTO**: `List<MilestoneDto>`
@@ -865,7 +860,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 8.2 마일스톤 생성
 
-- **Method URL**: `POST /api/projects/{projectId}/milestones`
+- **Method URL**: `POST /projects/{projectId}/milestones`
 - **설명**: 프로젝트 마일스톤을 생성합니다.
 - **Request DTO**: `MilestoneCreateRequest`
 - **Response DTO**: `MilestoneDto`
@@ -883,16 +878,64 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 </details>
 
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "milestoneId": 1,
+  "name": "Sprint 1",
+  "startDate": "2023-10-01",
+  "endDate": "2023-10-15"
+}
+```
+
+</details>
+
 ### 8.3 마일스톤 수정
 
-- **Method URL**: `PUT /api/projects/{projectId}/milestones/{milestoneId}`
+- **Method URL**: `POST /projects/{projectId}/milestones/{milestoneId}/edit`
 - **설명**: 마일스톤을 수정합니다.
 - **Request DTO**: `MilestoneCreateRequest`
 - **Response DTO**: `MilestoneDto`
 
+<details>
+<summary><strong>Request</strong></summary>
+
+```json
+{
+  "name": "Updated Sprint Name",
+  "startDate": "2023-10-02",
+  "endDate": "2023-10-16"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "milestoneId": 1,
+  "name": "Updated Sprint Name",
+  "startDate": "2023-10-02",
+  "endDate": "2023-10-16"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>예외</strong></summary>
+
+1. `startDate`와 `endDate`가 모두 있으면 `startDate`는 `endDate`보다 늦을 수 없습니다.
+
+</details>
+
 ### 8.4 마일스톤 삭제
 
-- **Method URL**: `DELETE /api/projects/{projectId}/milestones/{milestoneId}`
+- **Method URL**: `POST /projects/{projectId}/milestones/{milestoneId}/delete`
 - **설명**: 마일스톤을 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
@@ -910,7 +953,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 9.1 댓글 생성
 
-- **Method URL**: `POST /api/projects/{projectId}/tasks/{taskId}/comments`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments`
 - **설명**: Task에 댓글을 생성합니다.
 - **Request DTO**: `CommentCreateRequest`
 - **Response DTO**: 없음
@@ -928,7 +971,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 9.2 댓글 수정
 
-- **Method URL**: `PUT /api/projects/{projectId}/tasks/{taskId}/comments/{commentId}`
+- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/comments/{commentId}`
 - **설명**: 댓글 내용을 수정합니다.
 - **Request DTO**: `CommentCreateRequest`
 - **Response DTO**: 없음
@@ -943,7 +986,7 @@ Task-Api는 `X-User-Id`를 기준으로 프로젝트 멤버 여부, 프로젝트
 
 ### 9.3 댓글 삭제
 
-- **Method URL**: `DELETE /api/projects/{projectId}/tasks/{taskId}/comments/{commentId}`
+- **Method URL**: `DELETE /projects/{projectId}/tasks/{taskId}/comments/{commentId}`
 - **설명**: 댓글을 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
