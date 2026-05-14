@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import lombok.AccessLevel;
@@ -31,7 +32,7 @@ public class Milestone {
     private Project project;
 
     @Column(name = "name", length = 100, nullable = false)
-    @NotNull
+    @NotBlank
     private String name;
 
     @Column(name = "start_date")

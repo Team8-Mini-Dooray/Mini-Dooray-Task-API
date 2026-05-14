@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -39,7 +39,7 @@ public class Task {
     private Milestone milestone;
 
     @Column(name = "title", length = 200, nullable = false)
-    @NotNull
+    @NotBlank
     private String title;
 
     @Lob
@@ -47,7 +47,7 @@ public class Task {
     private String content;
 
     @Column(name = "writer_id", length = 50, nullable = false)
-    @NotNull
+    @NotBlank
     private String writerId;
 
     @CreationTimestamp
@@ -66,10 +66,9 @@ public class Task {
         this.writerId = writerId;
     }
 
-    public void update(String title, String content, String writerId) {
+    public void update(String title, String content) {
         this.title = title;
         this.content = content;
-        this.writerId = writerId;
     }
 
     public void removeMilestone() {

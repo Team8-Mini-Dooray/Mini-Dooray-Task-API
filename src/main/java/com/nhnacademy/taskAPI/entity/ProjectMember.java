@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,8 +37,8 @@ public class ProjectMember {
     @NotNull
     private Project project;
 
+    @NotBlank
     @Column(name = "user_id", length = 50, nullable = false)
-    @NotNull
     private String userId;
 
     public ProjectMember(Project project, String userId) {
