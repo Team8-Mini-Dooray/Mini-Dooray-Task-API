@@ -88,6 +88,12 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 `TERMINATED` 상태의 프로젝트에서는 조회만 가능합니다. Project, Project Member, Tag, Milestone, Task, Comment의 생성/수정/삭제 요청은 `409 PROJECT_NOT_ACTIVE`로 응답합니다.
 
+### 2.7 삭제 요청 규칙
+
+Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형태로 통일합니다.
+
+삭제 성공 시 `204 No Content`를 반환합니다.
+
 ---
 
 ## 3. DTO 목록
@@ -544,6 +550,10 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 ## 6. Task API
 
+Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상세 조회(`ProjectDetailDto`)에 포함된 `tasks`로 프로젝트의 Task 목록을 제공합니다.
+
+구현 시 Project 상세 DTO 조립을 위해 `TaskRepository.findByProject_ProjectId(projectId)` 같은 조회 메서드가 필요할 수 있습니다.
+
 ### 6.1 Task 상세 조회
 
 - **Method URL**: `GET /projects/{projectId}/tasks/{taskId}`
@@ -636,7 +646,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 <details>
 <summary><strong>예외</strong></summary>
 
-1. `writerId`는 `X-User-Id`와 동일해야 합니다.
+1. Task 생성 시 저장되는 `writerId`는 `request.writerId()`가 아니라 Header의 `X-User-Id`입니다.
 2. `TaskCreateRequest`의 `taskId`, `createdAt`은 생성 시 서버에서 결정되는 값입니다.
 3. Tag는 `TaskTagRequest` API로 별도 설정합니다.
 4. Milestone은 `TaskMilestoneRequest` API로 별도 설정합니다.
@@ -705,6 +715,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 <summary><strong>예외</strong></summary>
 
 1. Task 삭제 시 `comments`, `task_tags`는 DB의 `ON DELETE CASCADE`로 자동 삭제됩니다.
+2. 삭제 성공 시 `204 No Content`를 반환합니다.
 
 </details>
 
@@ -735,6 +746,14 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 </details>
 
+<details>
+<summary><strong>예외</strong></summary>
+
+1. Task 마일스톤 설정은 기존 `milestoneId` 값을 요청한 `milestoneId`로 교체합니다.
+2. `milestoneId`가 `null`이면 Task의 마일스톤을 제거하는 방식으로 처리할 수 있습니다.
+
+</details>
+
 ### 6.6 Task 태그 설정
 
 - **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/tags`
@@ -760,6 +779,14 @@ Gateway 요청 경로 기준으로 작성합니다.
 - `TAG_NOT_IN_PROJECT` (400): 해당 태그가 요청한 프로젝트 소속이 아닙니다.
 - `TASK_NOT_IN_PROJECT` (400): 해당 Task가 요청한 프로젝트 소속이 아닙니다.
 - `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 Task를 수정할 수 없습니다.
+
+</details>
+
+<details>
+<summary><strong>예외</strong></summary>
+
+1. Task 태그 설정은 기존 TaskTag 목록을 삭제한 뒤 요청한 `tagIds` 기준으로 다시 저장하는 전체 교체 방식입니다.
+2. `tagIds`는 1개 이상이어야 합니다.
 
 </details>
 
