@@ -66,9 +66,10 @@ public class Task {
         this.writerId = writerId;
     }
 
-    public void update(String title, String content) {
+    public void update(String title, String content, String writerId) {
         this.title = title;
         this.content = content;
+        this.writerId = writerId;
     }
 
     public void removeMilestone() {
