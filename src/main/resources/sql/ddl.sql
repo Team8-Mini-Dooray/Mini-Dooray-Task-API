@@ -15,6 +15,8 @@ CREATE TABLE projects (
                           name        VARCHAR(100) NOT NULL,
                           status      VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE', -- ACTIVE, DORMANT, TERMINATED
                           admin_id    VARCHAR(50)  NOT NULL,
+                          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
                           PRIMARY KEY (project_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -61,6 +63,7 @@ CREATE TABLE tasks (
                        content      TEXT         NULL,
                        writer_id    VARCHAR(50)  NOT NULL,
                        created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+                       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
                        PRIMARY KEY (task_id),
                        CONSTRAINT fk_task_project FOREIGN KEY (project_id) REFERENCES projects (project_id),
@@ -87,6 +90,7 @@ CREATE TABLE comments (
                           writer_id   VARCHAR(50) NOT NULL,
                           content     TEXT        NOT NULL,
                           created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+                          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
                           PRIMARY KEY (comment_id),
                           CONSTRAINT fk_comment_task FOREIGN KEY (task_id) REFERENCES tasks (task_id) ON DELETE CASCADE
