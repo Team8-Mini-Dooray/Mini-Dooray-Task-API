@@ -1,10 +1,12 @@
 package com.nhnacademy.taskAPI.task;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 public record ProjectUpdateRequest(
-        @NotNull
+        @NotBlank
+        @Size(max = 100)
         String name,
-        @NotNull
+        @NotBlank
+        @Pattern(regexp = "ACTIVE|DORMANT|TERMINATED")
         String status // ACTIVE, DORMANT, TERMINATED
 ) {}

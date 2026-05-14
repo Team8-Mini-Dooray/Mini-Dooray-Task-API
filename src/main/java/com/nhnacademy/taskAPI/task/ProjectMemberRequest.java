@@ -1,8 +1,9 @@
 package com.nhnacademy.taskAPI.task;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 public record ProjectMemberRequest(
-        @NotNull
+        @NotBlank
+        @Size(max = 50)
         String userId
 ) {}

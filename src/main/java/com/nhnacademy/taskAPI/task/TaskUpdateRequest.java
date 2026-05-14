@@ -1,13 +1,10 @@
 package com.nhnacademy.taskAPI.task;
 
-import jakarta.validation.constraints.NotNull;
-
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.*;
 
 public record TaskUpdateRequest(
-        @NotNull
+        @NotBlank
+        @Size(max = 200)
         String title,
         String content
-        @NotBlank String title,
-        @NotBlank String content
 ) {}

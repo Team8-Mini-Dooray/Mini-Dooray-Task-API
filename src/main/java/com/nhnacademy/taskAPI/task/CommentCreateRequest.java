@@ -1,8 +1,8 @@
 package com.nhnacademy.taskAPI.task;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 public record CommentCreateRequest(
-        @NotNull
+        @NotBlank
         String content
 ) {}
