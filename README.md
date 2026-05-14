@@ -88,6 +88,12 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 `TERMINATED` 상태의 프로젝트에서는 조회만 가능합니다. Project, Project Member, Tag, Milestone, Task, Comment의 생성/수정/삭제 요청은 `409 PROJECT_NOT_ACTIVE`로 응답합니다.
 
+### 2.7 삭제 요청 규칙
+
+Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형태로 통일합니다.
+
+삭제 성공 시 `204 No Content`를 반환합니다.
+
 ---
 
 ## 3. DTO 목록
@@ -114,10 +120,13 @@ Gateway 요청 경로 기준으로 작성합니다.
 | `ProjectDto` | `projectId`, `name`, `status` | 프로젝트 목록, 생성, 수정, 상태 변경 |
 | `ProjectDetailDto` | `projectId`, `name`, `status`, `members`, `tasks`, `milestones` | 프로젝트 상세 |
 | `ProjectMemberDto` | `userId` | 프로젝트 멤버 목록 |
-| `TaskDto` | `taskId`, `title`, `content`, `writerId`, `createdAt` | Task 조회, 생성, 수정 |
+| `TaskDto` | `taskId`, `title`, `content`, `writerId`, `createdAt` | Task 생성, 수정, 목록 구성 |
+| `TaskDetailDto` | `taskId`, `title`, `content`, `writerId`, `createdAt`, `comments` | Task 상세 |
 | `MilestoneDto` | `milestoneId`, `name`, `startDate`, `endDate` | 마일스톤 조회, 생성, 수정 |
+| `MilestoneDetailDto` | `milestoneId`, `name`, `startDate`, `endDate`, `tasks` | 마일스톤 상세 |
+| `TagDto` | `tagId`, `name` | 태그 목록, 생성, 수정 |
 
-> 현재 DTO 기준으로 `TagDto`, `CommentDto`는 정의되어 있지 않습니다. Tag/Comment API의 응답 Body가 필요하면 DTO 추가가 필요합니다. 이 명세에서는 DTO가 없는 생성/수정/삭제 API는 `204 No Content` 또는 별도 DTO 없음으로 정리합니다.
+> Task 상세 응답의 `comments`는 댓글 조회용 DTO가 필요합니다. 별도 `CommentDto`를 만들거나 `TaskDetailDto` 내부 응답 타입으로 정의해야 합니다.
 
 ---
 
@@ -542,12 +551,16 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 ## 6. Task API
 
+Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상세 조회(`ProjectDetailDto`)에 포함된 `tasks`로 프로젝트의 Task 목록을 제공합니다.
+
+구현 시 Project 상세 DTO 조립을 위해 `TaskRepository.findByProject_ProjectId(projectId)` 같은 조회 메서드가 필요할 수 있습니다.
+
 ### 6.1 Task 상세 조회
 
 - **Method URL**: `GET /projects/{projectId}/tasks/{taskId}`
 - **설명**: Task 상세 정보를 조회합니다.
 - **Request DTO**: 없음
-- **Response DTO**: `TaskDto`
+- **Response DTO**: `TaskDetailDto`
 
 <details>
 <summary><strong>Header</strong></summary>
@@ -565,7 +578,15 @@ Gateway 요청 경로 기준으로 작성합니다.
   "title": "Task 1",
   "content": "Detailed Content",
   "writerId": "user123",
-  "createdAt": "2023-10-27T10:00:00"
+  "createdAt": "2023-10-27T10:00:00",
+  "comments": [
+    {
+      "commentId": 1,
+      "writerId": "user123",
+      "content": "First Comment",
+      "createdAt": "2023-10-27T11:00:00"
+    }
+  ]
 }
 ```
 
@@ -634,7 +655,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 <details>
 <summary><strong>예외</strong></summary>
 
-1. `writerId`는 `X-User-Id`와 동일해야 합니다.
+1. Task 생성 시 저장되는 `writerId`는 `request.writerId()`가 아니라 Header의 `X-User-Id`입니다.
 2. `TaskCreateRequest`의 `taskId`, `createdAt`은 생성 시 서버에서 결정되는 값입니다.
 3. Tag는 `TaskTagRequest` API로 별도 설정합니다.
 4. Milestone은 `TaskMilestoneRequest` API로 별도 설정합니다.
@@ -703,6 +724,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 <summary><strong>예외</strong></summary>
 
 1. Task 삭제 시 `comments`, `task_tags`는 DB의 `ON DELETE CASCADE`로 자동 삭제됩니다.
+2. 삭제 성공 시 `204 No Content`를 반환합니다.
 
 </details>
 
@@ -730,6 +752,14 @@ Gateway 요청 경로 기준으로 작성합니다.
 - `MILESTONE_NOT_IN_PROJECT` (400): 해당 마일스톤이 요청한 프로젝트 소속이 아닙니다.
 - `TASK_NOT_IN_PROJECT` (400): 해당 Task가 요청한 프로젝트 소속이 아닙니다.
 - `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 Task를 수정할 수 없습니다.
+
+</details>
+
+<details>
+<summary><strong>예외</strong></summary>
+
+1. Task 마일스톤 설정은 기존 `milestoneId` 값을 요청한 `milestoneId`로 교체합니다.
+2. `milestoneId`가 `null`이면 Task의 마일스톤을 제거하는 방식으로 처리할 수 있습니다.
 
 </details>
 
@@ -761,81 +791,19 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 </details>
 
----
-
-## 7. Tag API
-
-### 7.1 태그 생성
-
-- **Method URL**: `POST /projects/{projectId}/tags`
-- **설명**: 프로젝트 태그를 생성합니다.
-- **Request DTO**: `TagCreateRequest`
-- **Response DTO**: 없음
-
-<details>
-<summary><strong>Request</strong></summary>
-
-```json
-{
-  "name": "백엔드"
-}
-```
-
-</details>
-
-<details>
-<summary><strong>Response</strong></summary>
-
-`204 No Content`
-
-</details>
-
-<details>
-<summary><strong>Error</strong></summary>
-
-- `DUPLICATE_TAG_NAME` (409): 같은 프로젝트에 동일한 태그 이름이 존재합니다.
-- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 태그를 생성할 수 없습니다.
-
-</details>
-
-### 7.2 태그 수정
-
-- **Method URL**: `PUT /projects/{projectId}/tags/{tagId}`
-- **설명**: 태그 이름을 수정합니다.
-- **Request DTO**: `TagCreateRequest`
-- **Response DTO**: 없음
-
-<details>
-<summary><strong>Request</strong></summary>
-
-```json
-{
-  "name": "서버"
-}
-```
-
-</details>
-
-### 7.3 태그 삭제
-
-- **Method URL**: `DELETE /projects/{projectId}/tags/{tagId}`
-- **설명**: 태그를 삭제합니다.
-- **Request DTO**: 없음
-- **Response DTO**: 없음
-
 <details>
 <summary><strong>예외</strong></summary>
 
-1. 태그 삭제 시 해당 태그와 Task의 연결을 제거합니다.
-2. `task_tags` 연결은 DB의 `ON DELETE CASCADE`로 자동 삭제됩니다.
+1. Task 태그 설정은 기존 TaskTag 목록을 삭제한 뒤 요청한 `tagIds` 기준으로 다시 저장하는 전체 교체 방식입니다.
+2. `tagIds`는 1개 이상이어야 합니다.
 
 </details>
 
 ---
 
-## 8. Milestone API
+## 7. Milestone API
 
-### 8.1 마일스톤 목록 조회
+### 7.1 마일스톤 목록 조회
 
 - **Method URL**: `GET /projects/{projectId}/milestones`
 - **설명**: 프로젝트 마일스톤 목록을 조회합니다.
@@ -858,7 +826,46 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 </details>
 
-### 8.2 마일스톤 생성
+### 7.2 마일스톤 상세 조회
+
+- **Method URL**: `GET /projects/{projectId}/milestones/{milestoneId}`
+- **설명**: 마일스톤 상세 정보와 해당 마일스톤에 연결된 Task 목록을 조회합니다.
+- **Request DTO**: 없음
+- **Response DTO**: `MilestoneDetailDto`
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "milestoneId": 1,
+  "name": "Sprint 1",
+  "startDate": "2023-10-01",
+  "endDate": "2023-10-15",
+  "tasks": [
+    {
+      "taskId": 1,
+      "title": "Task Title",
+      "content": "Task Content",
+      "writerId": "user123",
+      "createdAt": "2023-10-27T10:00:00"
+    }
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `MILESTONE_NOT_FOUND` (404): 마일스톤을 찾을 수 없습니다.
+- `MILESTONE_NOT_IN_PROJECT` (400): 해당 마일스톤이 요청한 프로젝트 소속이 아닙니다.
+- `NOT_PROJECT_MEMBER` (403): 요청자가 프로젝트 멤버가 아닙니다.
+
+</details>
+
+### 7.3 마일스톤 생성
 
 - **Method URL**: `POST /projects/{projectId}/milestones`
 - **설명**: 프로젝트 마일스톤을 생성합니다.
@@ -892,7 +899,16 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 </details>
 
-### 8.3 마일스톤 수정
+<details>
+<summary><strong>Error</strong></summary>
+
+- `INVALID_DATE_RANGE` (400): 시작일은 종료일보다 늦을 수 없습니다.
+- `DUPLICATE_MILESTONE_NAME` (409): 같은 프로젝트에 동일한 마일스톤 이름이 존재합니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 마일스톤을 생성할 수 없습니다.
+
+</details>
+
+### 7.4 마일스톤 수정
 
 - **Method URL**: `POST /projects/{projectId}/milestones/{milestoneId}/edit`
 - **설명**: 마일스톤을 수정합니다.
@@ -927,16 +943,20 @@ Gateway 요청 경로 기준으로 작성합니다.
 </details>
 
 <details>
-<summary><strong>예외</strong></summary>
+<summary><strong>Error</strong></summary>
 
-1. `startDate`와 `endDate`가 모두 있으면 `startDate`는 `endDate`보다 늦을 수 없습니다.
+- `MILESTONE_NOT_FOUND` (404): 마일스톤을 찾을 수 없습니다.
+- `MILESTONE_NOT_IN_PROJECT` (400): 해당 마일스톤이 요청한 프로젝트 소속이 아닙니다.
+- `INVALID_DATE_RANGE` (400): 시작일은 종료일보다 늦을 수 없습니다.
+- `DUPLICATE_MILESTONE_NAME` (409): 같은 프로젝트에 동일한 마일스톤 이름이 존재합니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 마일스톤을 수정할 수 없습니다.
 
 </details>
 
-### 8.4 마일스톤 삭제
+### 7.5 마일스톤 삭제
 
 - **Method URL**: `POST /projects/{projectId}/milestones/{milestoneId}/delete`
-- **설명**: 마일스톤을 삭제합니다.
+- **설명**: 해당 마일스톤을 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
 
@@ -944,6 +964,128 @@ Gateway 요청 경로 기준으로 작성합니다.
 <summary><strong>예외</strong></summary>
 
 1. 마일스톤 삭제 시 `tasks.milestone_id`는 DB의 `ON DELETE SET NULL`로 자동 NULL 처리됩니다.
+
+</details>
+
+---
+
+## 8. Tag API
+
+### 8.1 태그 목록 조회
+
+- **Method URL**: `GET /projects/{projectId}/tags`
+- **설명**: 프로젝트 태그 목록을 조회합니다.
+- **Request DTO**: 없음
+- **Response DTO**: `List<TagDto>`
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+[
+  {
+    "tagId": 1,
+    "name": "Backend"
+  },
+  {
+    "tagId": 2,
+    "name": "UI/UX"
+  }
+]
+```
+
+</details>
+
+### 8.2 태그 생성
+
+- **Method URL**: `POST /projects/{projectId}/tags`
+- **설명**: 프로젝트 태그를 생성합니다.
+- **Request DTO**: `TagCreateRequest`
+- **Response DTO**: `TagDto`
+
+<details>
+<summary><strong>Request</strong></summary>
+
+```json
+{
+  "name": "New Tag"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "tagId": 1,
+  "name": "New Tag"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `DUPLICATE_TAG_NAME` (409): 같은 프로젝트에 동일한 태그 이름이 존재합니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 태그를 생성할 수 없습니다.
+
+</details>
+
+### 8.3 태그 수정
+
+- **Method URL**: `POST /projects/{projectId}/tags/{tagId}/edit`
+- **설명**: 태그 이름을 수정합니다.
+- **Request DTO**: `TagCreateRequest`
+- **Response DTO**: `TagDto`
+
+<details>
+<summary><strong>Request</strong></summary>
+
+```json
+{
+  "name": "Updated Tag Name"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "tagId": 1,
+  "name": "Updated Tag Name"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `TAG_NOT_FOUND` (404): 태그를 찾을 수 없습니다.
+- `TAG_NOT_IN_PROJECT` (400): 해당 태그가 요청한 프로젝트 소속이 아닙니다.
+- `DUPLICATE_TAG_NAME` (409): 같은 프로젝트에 동일한 태그 이름이 존재합니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 태그를 수정할 수 없습니다.
+
+</details>
+
+### 8.4 태그 삭제
+
+- **Method URL**: `POST /projects/{projectId}/tags/{tagId}/delete`
+- **설명**: 해당 태그를 삭제합니다.
+- **Request DTO**: 없음
+- **Response DTO**: 없음
+
+<details>
+<summary><strong>예외</strong></summary>
+
+1. 태그 삭제 시 해당 태그와 Task의 연결을 제거합니다.
+2. `task_tags` 연결은 DB의 `ON DELETE CASCADE`로 자동 삭제됩니다.
 
 </details>
 
@@ -963,7 +1105,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 ```json
 {
-  "content": "확인했습니다."
+  "content": "Comment Content"
 }
 ```
 
@@ -971,10 +1113,21 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 ### 9.2 댓글 수정
 
-- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/comments/{commentId}`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit`
 - **설명**: 댓글 내용을 수정합니다.
 - **Request DTO**: `CommentCreateRequest`
 - **Response DTO**: 없음
+
+<details>
+<summary><strong>Request</strong></summary>
+
+```json
+{
+  "content": "Updated Comment Content"
+}
+```
+
+</details>
 
 <details>
 <summary><strong>예외</strong></summary>
@@ -986,7 +1139,7 @@ Gateway 요청 경로 기준으로 작성합니다.
 
 ### 9.3 댓글 삭제
 
-- **Method URL**: `DELETE /projects/{projectId}/tasks/{taskId}/comments/{commentId}`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/delete`
 - **설명**: 댓글을 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음

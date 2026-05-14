@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -30,6 +31,7 @@ public class Task {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_id", nullable = false)
+    @NotNull
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -37,6 +39,7 @@ public class Task {
     private Milestone milestone;
 
     @Column(name = "title", length = 200, nullable = false)
+    @NotNull
     private String title;
 
     @Lob
@@ -44,6 +47,7 @@ public class Task {
     private String content;
 
     @Column(name = "writer_id", length = 50, nullable = false)
+    @NotNull
     private String writerId;
 
     @CreationTimestamp

@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -29,13 +30,16 @@ public class Comment {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "task_id", nullable = false)
+    @NotNull
     private Task task;
 
     @Column(name = "writer_id", length = 50, nullable = false)
+    @NotNull
     private String writerId;
 
     @Lob
     @Column(name = "content", nullable = false , columnDefinition = "TEXT")
+    @NotNull
     private String content;
 
     @CreationTimestamp
