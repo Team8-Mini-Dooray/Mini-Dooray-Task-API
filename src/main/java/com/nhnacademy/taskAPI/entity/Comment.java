@@ -52,8 +52,8 @@ public class Comment {
         this.content = content;
     }
 
-    public void updateComment(Comment comment) {
-        this.content = comment.content;
+    public void updateContent(String content) {
+        this.content = content;
     }
 
     public boolean isWriter(String writerId) {
