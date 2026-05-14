@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,13 +27,16 @@ public class Project {
     private Long projectId;
 
     @Column(name = "name", length = 100, nullable = false)
+    @NotNull
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
+    @NotNull
     private ProjectStatus status = ProjectStatus.ACTIVE;
 
     @Column(name = "admin_id", length = 50, nullable = false)
+    @NotNull
     private String adminId;
 
     @CreationTimestamp

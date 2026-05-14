@@ -120,12 +120,13 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 | `ProjectDto` | `projectId`, `name`, `status` | 프로젝트 목록, 생성, 수정, 상태 변경 |
 | `ProjectDetailDto` | `projectId`, `name`, `status`, `members`, `tasks`, `milestones` | 프로젝트 상세 |
 | `ProjectMemberDto` | `userId` | 프로젝트 멤버 목록 |
-| `TaskDto` | `taskId`, `title`, `content`, `writerId`, `createdAt` | Task 조회, 생성, 수정 |
+| `TaskDto` | `taskId`, `title`, `content`, `writerId`, `createdAt` | Task 생성, 수정, 목록 구성 |
+| `TaskDetailDto` | `taskId`, `title`, `content`, `writerId`, `createdAt`, `comments` | Task 상세 |
 | `MilestoneDto` | `milestoneId`, `name`, `startDate`, `endDate` | 마일스톤 조회, 생성, 수정 |
 | `MilestoneDetailDto` | `milestoneId`, `name`, `startDate`, `endDate`, `tasks` | 마일스톤 상세 |
 | `TagDto` | `tagId`, `name` | 태그 목록, 생성, 수정 |
 
-> 현재 DTO 기준으로 `CommentDto`는 정의되어 있지 않습니다. Comment API의 응답 Body가 필요하면 DTO 추가가 필요합니다.
+> Task 상세 응답의 `comments`는 댓글 조회용 DTO가 필요합니다. 별도 `CommentDto`를 만들거나 `TaskDetailDto` 내부 응답 타입으로 정의해야 합니다.
 
 ---
 
@@ -559,7 +560,7 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 - **Method URL**: `GET /projects/{projectId}/tasks/{taskId}`
 - **설명**: Task 상세 정보를 조회합니다.
 - **Request DTO**: 없음
-- **Response DTO**: `TaskDto`
+- **Response DTO**: `TaskDetailDto`
 
 <details>
 <summary><strong>Header</strong></summary>
@@ -577,7 +578,15 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
   "title": "Task 1",
   "content": "Detailed Content",
   "writerId": "user123",
-  "createdAt": "2023-10-27T10:00:00"
+  "createdAt": "2023-10-27T10:00:00",
+  "comments": [
+    {
+      "commentId": 1,
+      "writerId": "user123",
+      "content": "First Comment",
+      "createdAt": "2023-10-27T11:00:00"
+    }
+  ]
 }
 ```
 
@@ -1096,7 +1105,7 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 
 ```json
 {
-  "content": "확인했습니다."
+  "content": "Comment Content"
 }
 ```
 
@@ -1104,10 +1113,21 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 
 ### 9.2 댓글 수정
 
-- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/comments/{commentId}`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit`
 - **설명**: 댓글 내용을 수정합니다.
 - **Request DTO**: `CommentCreateRequest`
 - **Response DTO**: 없음
+
+<details>
+<summary><strong>Request</strong></summary>
+
+```json
+{
+  "content": "Updated Comment Content"
+}
+```
+
+</details>
 
 <details>
 <summary><strong>예외</strong></summary>
@@ -1119,7 +1139,7 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 
 ### 9.3 댓글 삭제
 
-- **Method URL**: `DELETE /projects/{projectId}/tasks/{taskId}/comments/{commentId}`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/delete`
 - **설명**: 댓글을 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음

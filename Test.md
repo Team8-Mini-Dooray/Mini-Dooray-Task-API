@@ -130,14 +130,22 @@
 
 ### 3.1 업무 상세 조회
 - **Endpoint**: `GET /projects/{projectId}/tasks/{taskId}`
-- **Response (TaskDto)**:
+- **Response (TaskDetailDto)**:
   ```json
   {
     "taskId": 1,
     "title": "Task 1",
     "content": "Detailed Content",
     "writerId": "user123",
-    "createdAt": "2023-10-27T10:00:00"
+    "createdAt": "2023-10-27T10:00:00",
+    "comments": [
+      {
+        "commentId": 1,
+        "writerId": "user123",
+        "content": "First Comment",
+        "createdAt": "2023-10-27T11:00:00"
+      }
+    ]
   }
   ```
 
@@ -187,7 +195,6 @@
 ---
 
 ## 4. Milestone API (마일스톤 관리)
-
 ### 4.1 마일스톤 상세 조회
 - **Endpoint**: `GET /projects/{projectId}/milestones/{milestoneId}`
 - **Response (MilestoneDetailDto)**:
@@ -208,7 +215,8 @@
     ]
   }
   ```
-  ### 4.2 마일스톤 생성
+
+### 4.2 마일스톤 생성
 - **Endpoint**: `POST /projects/{projectId}/milestones`
 - **Request (MilestoneCreateRequest)**:
   ```json
@@ -277,3 +285,28 @@
 ### 5.4 태그 삭제
 - **Endpoint**: `POST /projects/{projectId}/tags/{tagId}/delete`
 - **Description**: 해당 태그를 삭제합니다.
+
+---
+
+## 6. Comment API (댓글 관리)
+
+### 6.1 댓글 생성
+- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/comments`
+- **Request (CommentCreateRequest)**:
+  ```json
+  {
+    "content": "Comment Content"
+  }
+  ```
+
+### 6.2 댓글 수정
+- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit`
+- **Request (CommentCreateRequest)**:
+  ```json
+  {
+    "content": "Updated Comment Content"
+  }
+  ```
+
+### 6.3 댓글 삭제
+- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/delete`
