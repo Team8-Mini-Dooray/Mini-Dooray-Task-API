@@ -107,7 +107,8 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 | `ProjectMemberRequest` | `userId` | 프로젝트 멤버 추가 |
 | `TagCreateRequest` | `name` | 태그 생성, 태그 수정 |
 | `MilestoneCreateRequest` | `name`, `startDate`, `endDate` | 마일스톤 생성, 마일스톤 수정 |
-| `TaskCreateRequest` | `taskId`, `projectId`, `title`, `content`, `writerId`, `createdAt` | Task 생성 |
+| `TaskCreateRequest` | `taskId`, `projectId`, `title`, `content`, `writerId`, `createdAt` | Task 생성 Body |
+| Task 생성 Optional Parameter | `milestoneId`, `newMilestoneName`, `newMilestoneStartDate`, `newMilestoneEndDate`, `tagIds`, `newTagName` | Task 생성 시 마일스톤/태그 즉시 할당 또는 생성 |
 | `TaskUpdateRequest` | `title`, `content` | Task 수정 |
 | `TaskMilestoneRequest` | `milestoneId` | Task 마일스톤 설정 |
 | `TaskTagRequest` | `tagIds` | Task 태그 설정 |
@@ -118,15 +119,14 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 | DTO | 필드 | 사용 API |
 | --- | --- | --- |
 | `ProjectDto` | `projectId`, `name`, `status` | 프로젝트 목록, 생성, 수정, 상태 변경 |
-| `ProjectDetailDto` | `projectId`, `name`, `status`, `members`, `tasks`, `milestones` | 프로젝트 상세 |
+| `ProjectDetailDto` | `projectId`, `name`, `status`, `adminId`, `members`, `tasks`, `milestones` | 프로젝트 상세 |
 | `ProjectMemberDto` | `userId` | 프로젝트 멤버 목록 |
-| `TaskDto` | `taskId`, `title`, `content`, `writerId`, `createdAt` | Task 생성, 수정, 목록 구성 |
-| `TaskDetailDto` | `taskId`, `title`, `content`, `writerId`, `createdAt`, `comments` | Task 상세 |
+| `TaskDto` | `taskId`, `milestoneId`, `title`, `content`, `writerId`, `createdAt`, `tags` | Task 생성, 수정, 목록 구성 |
+| `TaskDetailDto` | `taskId`, `title`, `content`, `writerId`, `createdAt`, `milestone`, `tags`, `comments` | Task 상세 |
 | `MilestoneDto` | `milestoneId`, `name`, `startDate`, `endDate` | 마일스톤 조회, 생성, 수정 |
 | `MilestoneDetailDto` | `milestoneId`, `name`, `startDate`, `endDate`, `tasks` | 마일스톤 상세 |
 | `TagDto` | `tagId`, `name` | 태그 목록, 생성, 수정 |
-
-> Task 상세 응답의 `comments`는 댓글 조회용 DTO가 필요합니다. 별도 `CommentDto`를 만들거나 `TaskDetailDto` 내부 응답 타입으로 정의해야 합니다.
+| `CommentDto` | `commentId`, `writerId`, `content`, `createdAt` | 댓글 생성, 수정, Task 상세 댓글 목록 |
 
 ---
 
@@ -212,6 +212,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
   "projectId": 1,
   "name": "Project A",
   "status": "ACTIVE",
+  "adminId": "admin123",
   "members": [
     {
       "userId": "user123"
@@ -220,10 +221,17 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
   "tasks": [
     {
       "taskId": 1,
+      "milestoneId": 1,
       "title": "Task 1",
       "content": "Content...",
       "writerId": "user123",
-      "createdAt": "2023-10-27T10:00:00"
+      "createdAt": "2023-10-27T10:00:00",
+      "tags": [
+        {
+          "tagId": 1,
+          "name": "Bug"
+        }
+      ]
     }
   ],
   "milestones": [
@@ -579,6 +587,18 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
   "content": "Detailed Content",
   "writerId": "user123",
   "createdAt": "2023-10-27T10:00:00",
+  "milestone": {
+    "milestoneId": 1,
+    "name": "Sprint 1",
+    "startDate": "2023-10-01",
+    "endDate": "2023-10-15"
+  },
+  "tags": [
+    {
+      "tagId": 1,
+      "name": "Backend"
+    }
+  ],
   "comments": [
     {
       "commentId": 1,
@@ -604,7 +624,7 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 ### 6.2 Task 생성
 
 - **Method URL**: `POST /projects/{projectId}/tasks`
-- **설명**: 프로젝트에 Task를 생성합니다.
+- **설명**: 프로젝트에 Task를 생성합니다. 요청 파라미터를 함께 전달하면 기존 마일스톤/태그를 즉시 할당하거나 새 마일스톤/태그를 생성해 함께 할당할 수 있습니다.
 - **Request DTO**: `TaskCreateRequest`
 - **Response DTO**: `TaskDto`
 
@@ -627,6 +647,23 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 }
 ```
 
+- Optional Request Parameter
+
+| Parameter | Type | 설명 |
+| --- | --- | --- |
+| `milestoneId` | Long | 기존 마일스톤 ID를 Task에 할당합니다. |
+| `newMilestoneName` | String | 새 마일스톤을 생성하고 Task에 할당합니다. |
+| `newMilestoneStartDate` | LocalDate | 새 마일스톤 시작일입니다. |
+| `newMilestoneEndDate` | LocalDate | 새 마일스톤 종료일입니다. |
+| `tagIds` | List<Long> | 기존 태그 ID 목록을 Task에 할당합니다. |
+| `newTagName` | String | 새 태그를 생성하고 Task에 추가 할당합니다. |
+
+예시:
+
+```http
+POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
+```
+
 </details>
 
 <details>
@@ -635,10 +672,21 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 ```json
 {
   "taskId": 1,
+  "milestoneId": 1,
   "title": "New Task",
   "content": "Task Content",
   "writerId": "user123",
-  "createdAt": "2023-10-27T10:00:00"
+  "createdAt": "2023-10-27T10:00:00",
+  "tags": [
+    {
+      "tagId": 1,
+      "name": "Backend"
+    },
+    {
+      "tagId": 2,
+      "name": "Frontend"
+    }
+  ]
 }
 ```
 
@@ -648,6 +696,11 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 <summary><strong>Error</strong></summary>
 
 - `NOT_PROJECT_MEMBER` (403): 요청자가 프로젝트 멤버가 아닙니다.
+- `MILESTONE_NOT_IN_PROJECT` (400): 기존 마일스톤이 요청한 프로젝트 소속이 아닙니다.
+- `TAG_NOT_IN_PROJECT` (400): 기존 태그가 요청한 프로젝트 소속이 아닙니다.
+- `INVALID_DATE_RANGE` (400): 새 마일스톤 시작일이 종료일보다 늦습니다.
+- `DUPLICATE_MILESTONE_NAME` (409): 같은 프로젝트에 동일한 마일스톤 이름이 존재합니다.
+- `DUPLICATE_TAG_NAME` (409): 같은 프로젝트에 동일한 태그 이름이 존재합니다.
 - `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 Task를 생성할 수 없습니다.
 
 </details>
@@ -657,8 +710,9 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 
 1. Task 생성 시 저장되는 `writerId`는 `request.writerId()`가 아니라 Header의 `X-User-Id`입니다.
 2. `TaskCreateRequest`의 `taskId`, `createdAt`은 생성 시 서버에서 결정되는 값입니다.
-3. Tag는 `TaskTagRequest` API로 별도 설정합니다.
-4. Milestone은 `TaskMilestoneRequest` API로 별도 설정합니다.
+3. `newMilestoneName`이 있으면 새 마일스톤을 생성해 할당하고, 없으면 `milestoneId` 기준으로 기존 마일스톤을 할당합니다.
+4. `tagIds`가 있으면 기존 태그를 할당하고, `newTagName`이 있으면 새 태그를 생성해 함께 할당합니다.
+5. 생성 이후 마일스톤과 태그는 `TaskMilestoneRequest`, `TaskTagRequest` API로 다시 교체할 수 있습니다.
 
 </details>
 

@@ -11,18 +11,19 @@ import com.nhnacademy.taskAPI.entity.TaskTag;
 import com.nhnacademy.taskAPI.exception.BusinessException;
 import com.nhnacademy.taskAPI.exception.ErrorCode;
 import com.nhnacademy.taskAPI.repository.*;
-import com.nhnacademy.taskAPI.task.CommentCreateRequest;
 import com.nhnacademy.taskAPI.task.CommentDto;
+import com.nhnacademy.taskAPI.task.MilestoneDto;
+import com.nhnacademy.taskAPI.task.TagDto;
 import com.nhnacademy.taskAPI.task.TaskCreateRequest;
 import com.nhnacademy.taskAPI.task.TaskDetailDto;
 import com.nhnacademy.taskAPI.task.TaskDto;
 import com.nhnacademy.taskAPI.task.TaskMilestoneRequest;
-import com.nhnacademy.taskAPI.task.TaskTagRequest;
 import com.nhnacademy.taskAPI.task.TaskUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,13 +54,38 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskDto createTask(Long projectId, TaskCreateRequest request, String userId) {
+    public TaskDto createTask(
+            Long projectId,
+            TaskCreateRequest request,
+            Long milestoneId,
+            String newMilestoneName,
+            LocalDate newMilestoneStartDate,
+            LocalDate newMilestoneEndDate,
+            List<Long> tagIds,
+            String newTagName,
+            String userId
+    ) {
         Project project = getProject(projectId);
         validateProjectWritable(project);
         validateProjectMember(projectId, userId);
 
-        Task task = new Task(project, null, request.title(), request.content(), userId);
-        return toTaskDto(taskRepository.save(task));
+        Milestone milestone = resolveMilestone(
+                project,
+                milestoneId,
+                newMilestoneName,
+                newMilestoneStartDate,
+                newMilestoneEndDate
+        );
+        Task task = taskRepository.save(new Task(project, milestone, request.title(), request.content(), userId));
+
+        List<Tag> tags = resolveTags(project, tagIds, newTagName);
+        if (!tags.isEmpty()) {
+            taskTagRepository.saveAll(tags.stream()
+                    .map(tag -> new TaskTag(task, tag))
+                    .toList());
+        }
+
+        return toTaskDto(task);
     }
 
     @Transactional
@@ -100,65 +126,6 @@ public class TaskService {
         task.updateMilestone(milestone);
 
         return toTaskDto(task);
-    }
-
-    @Transactional
-    public TaskDto updateTaskTags(Long projectId, Long taskId, TaskTagRequest request, String userId) {
-        Project project = getProject(projectId);
-        validateProjectWritable(project);
-        validateProjectMember(projectId, userId);
-
-        Task task = getTaskInProject(projectId, taskId);
-        List<Long> tagIds = request.tagIds();
-        if (tagIds == null || tagIds.isEmpty()) {
-            throw new BusinessException(ErrorCode.TASK_TAG_REQUIRED);
-        }
-
-        List<Tag> tags = getTagsInProject(projectId, tagIds);
-        taskTagRepository.deleteAllByTask_TaskId(taskId);
-        taskTagRepository.saveAll(tags.stream()
-                .map(tag -> new TaskTag(task, tag))
-                .toList());
-
-        return toTaskDto(task);
-    }
-
-    @Transactional
-    public CommentDto createComment(Long projectId, Long taskId, CommentCreateRequest request, String userId) {
-        Project project = getProject(projectId);
-        validateProjectWritable(project);
-        validateProjectMember(projectId, userId);
-
-        Task task = getTaskInProject(projectId, taskId);
-        Comment comment = new Comment(task, userId, request.content());
-
-        return toCommentDto(commentRepository.save(comment));
-    }
-
-    @Transactional
-    public CommentDto updateComment(Long projectId, Long taskId, Long commentId, CommentCreateRequest request, String userId) {
-        Project project = getProject(projectId);
-        validateProjectWritable(project);
-        validateProjectMember(projectId, userId);
-        getTaskInProject(projectId, taskId);
-
-        Comment comment = getCommentInTask(taskId, commentId);
-        validateCommentWriter(comment, userId);
-        comment.updateContent(request.content());
-
-        return toCommentDto(comment);
-    }
-
-    @Transactional
-    public void deleteComment(Long projectId, Long taskId, Long commentId, String userId) {
-        Project project = getProject(projectId);
-        validateProjectWritable(project);
-        validateProjectMember(projectId, userId);
-        getTaskInProject(projectId, taskId);
-
-        Comment comment = getCommentInTask(taskId, commentId);
-        validateCommentWriter(comment, userId);
-        commentRepository.delete(comment);
     }
 
     private Project getProject(Long projectId) {
@@ -215,29 +182,53 @@ public class TaskService {
         return tags;
     }
 
-    private Comment getCommentInTask(Long taskId, Long commentId) {
-        return commentRepository.findByCommentIdAndTask_TaskId(commentId, taskId)
-                .orElseThrow(() -> {
-                    if (commentRepository.existsById(commentId)) {
-                        return new BusinessException(ErrorCode.COMMENT_NOT_IN_TASK);
-                    }
-                    return new BusinessException(ErrorCode.COMMENT_NOT_FOUND);
-                });
+    private Milestone resolveMilestone(
+            Project project,
+            Long milestoneId,
+            String newMilestoneName,
+            LocalDate newMilestoneStartDate,
+            LocalDate newMilestoneEndDate
+    ) {
+        // TODO: MilestoneService 구현 후 newMilestoneName/newMilestoneStartDate/newMilestoneEndDate로
+        //       새 마일스톤을 생성하고, 생성된 milestoneId를 Task에 할당하도록 연결한다.
+        if (hasText(newMilestoneName)) {
+            return null;
+        }
+
+        if (milestoneId == null) {
+            return null;
+        }
+
+        return getMilestoneInProject(project.getProjectId(), milestoneId);
     }
 
-    private void validateCommentWriter(Comment comment, String userId) {
-        if (!comment.isWriter(userId)) {
-            throw new BusinessException(ErrorCode.NOT_COMMENT_WRITER);
+    private List<Tag> resolveTags(Project project, List<Long> tagIds, String newTagName) {
+        // TODO: TagService 구현 후 newTagName으로 새 태그를 생성하고,
+        //       생성된 tagId를 기존 tagIds와 함께 TaskTag에 연결한다.
+        if (hasText(newTagName) && (tagIds == null || tagIds.isEmpty())) {
+            return List.of();
         }
+
+        if (tagIds == null || tagIds.isEmpty()) {
+            return List.of();
+        }
+
+        return getTagsInProject(project.getProjectId(), tagIds);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private TaskDto toTaskDto(Task task) {
         return new TaskDto(
                 task.getTaskId(),
+                task.getMilestone() == null ? null : task.getMilestone().getMilestoneId(),
                 task.getTitle(),
                 task.getContent(),
                 task.getWriterId(),
-                task.getCreatedAt()
+                task.getCreatedAt(),
+                getTaskTags(task.getTaskId())
         );
     }
 
@@ -248,7 +239,37 @@ public class TaskService {
                 task.getContent(),
                 task.getWriterId(),
                 task.getCreatedAt(),
+                toMilestoneDto(task.getMilestone()),
+                getTaskTags(task.getTaskId()),
                 comments
+        );
+    }
+
+    private List<TagDto> getTaskTags(Long taskId) {
+        return taskTagRepository.findByTask_TaskId(taskId)
+                .stream()
+                .map(TaskTag::getTag)
+                .map(this::toTagDto)
+                .toList();
+    }
+
+    private MilestoneDto toMilestoneDto(Milestone milestone) {
+        if (milestone == null) {
+            return null;
+        }
+
+        return new MilestoneDto(
+                milestone.getMilestoneId(),
+                milestone.getName(),
+                milestone.getStartDate(),
+                milestone.getEndDate()
+        );
+    }
+
+    private TagDto toTagDto(Tag tag) {
+        return new TagDto(
+                tag.getTagId(),
+                tag.getName()
         );
     }
 

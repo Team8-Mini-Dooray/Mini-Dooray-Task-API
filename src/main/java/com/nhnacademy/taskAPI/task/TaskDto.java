@@ -1,6 +1,7 @@
 package com.nhnacademy.taskAPI.task;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record TaskDto(
         Long taskId,
@@ -8,5 +9,6 @@ public record TaskDto(
         String title,
         String content,
         String writerId,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        List<TagDto> tags
 ) {}

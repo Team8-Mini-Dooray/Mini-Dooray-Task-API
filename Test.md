@@ -54,6 +54,17 @@
   }
   ```
 
+### 1.5 사용자 정보 조회
+- **Endpoint**: `GET /accounts/users/{userId}`
+- **Response (UserDto)**:
+  ```json
+  {
+    "userId": "user123",
+    "email": "user@example.com",
+    "status": "ACTIVE"
+  }
+  ```
+
 ---
 
 ## 2. Project API (프로젝트 관리)
@@ -79,14 +90,17 @@
     "projectId": 1,
     "name": "Project A",
     "status": "ACTIVE",
+    "adminId": "admin123",
     "members": [ { "userId": "user123" } ],
     "tasks": [
       {
         "taskId": 1,
+        "milestoneId": 1,
         "title": "Task 1",
         "content": "Content...",
         "writerId": "user123",
-        "createdAt": "2023-10-27T10:00:00"
+        "createdAt": "2023-10-27T10:00:00",
+        "tags": [ { "tagId": 1, "name": "Bug" } ]
       }
     ],
     "milestones": [
@@ -124,6 +138,15 @@
 - **Endpoint**: `POST /projects/{projectId}/close`
 - **Description**: 프로젝트 상태를 `CLOSED`로 강제 업데이트합니다.
 
+### 2.6 프로젝트 멤버 추가
+- **Endpoint**: `POST /projects/{projectId}/members`
+- **Request (ProjectMemberRequest)**:
+  ```json
+  {
+    "userId": "newuser123"
+  }
+  ```
+
 ---
 
 ## 3. Task API (업무 관리)
@@ -138,6 +161,18 @@
     "content": "Detailed Content",
     "writerId": "user123",
     "createdAt": "2023-10-27T10:00:00",
+    "milestone": {
+      "milestoneId": 1,
+      "name": "Sprint 1",
+      "startDate": "2023-10-01",
+      "endDate": "2023-10-15"
+    },
+    "tags": [
+      {
+        "tagId": 1,
+        "name": "Backend"
+      }
+    ],
     "comments": [
       {
         "commentId": 1,
@@ -151,7 +186,7 @@
 
 ### 3.2 업무 생성
 - **Endpoint**: `POST /projects/{projectId}/tasks`
-- **Request (TaskCreateRequest)**:
+- **Request Body (TaskCreateRequest)**:
   ```json
   {
     "projectId": 1,
@@ -160,153 +195,11 @@
     "writerId": "user123"
   }
   ```
-
-### 3.3 업무 수정
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/edit`
-- **Request (TaskUpdateRequest)**:
-  ```json
-  {
-    "title": "Updated Title",
-    "content": "Updated Content"
-  }
-  ```
-
-### 3.4 업무 삭제
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/delete`
-
-### 3.5 업무 마일스톤 설정
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/milestones`
-- **Request (TaskMilestoneRequest)**:
-  ```json
-  {
-    "milestoneId": 2
-  }
-  ```
-
-### 3.6 업무 태그 설정
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/tags`
-- **Request (TaskTagRequest)**:
-  ```json
-  {
-    "tagIds": [1, 2, 5]
-  }
-  ```
-
----
-
-## 4. Milestone API (마일스톤 관리)
-### 4.1 마일스톤 상세 조회
-- **Endpoint**: `GET /projects/{projectId}/milestones/{milestoneId}`
-- **Response (MilestoneDetailDto)**:
-  ```json
-  {
-    "milestoneId": 1,
-    "name": "Sprint 1",
-    "startDate": "2023-10-01",
-    "endDate": "2023-10-15",
-    "tasks": [
-      {
-        "taskId": 1,
-        "title": "Task Title",
-        "content": "Task Content",
-        "writerId": "user123",
-        "createdAt": "2023-10-27T10:00:00"
-      }
-    ]
-  }
-  ```
-
-### 4.2 마일스톤 생성
-- **Endpoint**: `POST /projects/{projectId}/milestones`
-- **Request (MilestoneCreateRequest)**:
-  ```json
-  {
-    "name": "Sprint 1",
-    "startDate": "2023-10-01",
-    "endDate": "2023-10-15"
-  }
-  ```
-- **Response (MilestoneDto)**: 생성된 마일스톤 정보 반환
-
-### 4.3 마일스톤 수정
-- **Endpoint**: `POST /projects/{projectId}/milestones/{milestoneId}/edit`
-- **Request (MilestoneCreateRequest)**:
-  ```json
-  {
-    "name": "Updated Sprint Name",
-    "startDate": "2023-10-02",
-    "endDate": "2023-10-16"
-  }
-  ```
-
-### 4.4 마일스톤 삭제
-- **Endpoint**: `POST /projects/{projectId}/milestones/{milestoneId}/delete`
-- **Description**: 해당 마일스톤을 삭제합니다.
-
----
-
-## 5. Tag API (태그 관리)
-
-### 5.1 태그 목록 조회
-- **Endpoint**: `GET /projects/{projectId}/tags`
-- **Response**: `List<TagDto>`
-  ```json
-  [
-    {
-      "tagId": 1,
-      "name": "Backend"
-    },
-    {
-      "tagId": 2,
-      "name": "UI/UX"
-    }
-  ]
-  ```
-
-### 5.2 태그 생성
-- **Endpoint**: `POST /projects/{projectId}/tags`
-- **Request (TagCreateRequest)**:
-  ```json
-  {
-    "name": "New Tag"
-  }
-  ```
-- **Response (TagDto)**: 생성된 태그 정보 반환
-
-### 5.3 태그 수정
-- **Endpoint**: `POST /projects/{projectId}/tags/{tagId}/edit`
-- **Request (TagCreateRequest)**:
-  ```json
-  {
-    "name": "Updated Tag Name"
-  }
-  ```
-
-### 5.4 태그 삭제
-- **Endpoint**: `POST /projects/{projectId}/tags/{tagId}/delete`
-- **Description**: 해당 태그를 삭제합니다.
-
----
-
-## 6. Comment API (댓글 관리)
-
-### 6.1 댓글 생성
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/comments`
-- **Request (CommentCreateRequest)**:
-  ```json
-  {
-    "content": "Comment Content"
-  }
-  ```
-
-### 6.2 댓글 수정
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit`
-- **Request (CommentCreateRequest)**:
-  ```json
-  {
-    "content": "Updated Comment Content"
-  }
-  ```
-
-### 6.3 댓글 삭제
-- **Endpoint**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/delete`
+- **Optional Request Parameters**:
+  - `milestoneId` (Long): 기존 마일스톤 ID 할당
+  - `newMilestoneName` (String): 새 마일스톤 생성 및 할당
+  - `newMilestoneStartDate` (LocalDate): 새 마일스톤 시작일
+  - `newMilestoneEndDate` (LocalDate): 새 마일스톤 종료일
+  - `tagIds` (List<Long>): 기존 태그 ID 목록 할당
+  - `newTagName` (String): 새 태그 생성 및 추가 할당
+- **Description**: 새로운 업무를 생성합니다. 파라미터를 통해 마일스톤이나 태그를 즉석에서 생성하여 할당할 수 있습니다.
