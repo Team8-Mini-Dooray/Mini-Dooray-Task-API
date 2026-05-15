@@ -17,7 +17,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
 
 @Entity
 @Table(name = "tasks")
@@ -70,6 +69,10 @@ public class Task {
         this.title = title;
         this.content = content;
         this.writerId = writerId;
+    }
+
+    public void updateMilestone(Milestone milestone) {
+        this.milestone = milestone;
     }
 
     public void removeMilestone() {
