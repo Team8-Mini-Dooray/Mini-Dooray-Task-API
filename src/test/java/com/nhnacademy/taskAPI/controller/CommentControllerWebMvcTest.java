@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -86,7 +87,7 @@ class CommentControllerWebMvcTest {
 
         when(commentService.updateComment(eq(1L), eq(20L), eq(30L), any(), eq("user1"))).thenReturn(response);
 
-        mockMvc.perform(post("/projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit", 1L, 20L, 30L)
+        mockMvc.perform(put("/projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit", 1L, 20L, 30L)
                         .header(USER_ID_HEADER, "user1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
