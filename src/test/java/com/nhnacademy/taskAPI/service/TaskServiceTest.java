@@ -15,6 +15,10 @@ import com.nhnacademy.taskAPI.repository.ProjectRepository;
 import com.nhnacademy.taskAPI.repository.TagRepository;
 import com.nhnacademy.taskAPI.repository.TaskRepository;
 import com.nhnacademy.taskAPI.repository.TaskTagRepository;
+import com.nhnacademy.taskAPI.task.MilestoneCreateRequest;
+import com.nhnacademy.taskAPI.task.MilestoneDto;
+import com.nhnacademy.taskAPI.task.TagCreateRequest;
+import com.nhnacademy.taskAPI.task.TagDto;
 import com.nhnacademy.taskAPI.task.TaskCreateRequest;
 import com.nhnacademy.taskAPI.task.TaskDto;
 import com.nhnacademy.taskAPI.task.TaskMilestoneRequest;
@@ -33,7 +37,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,6 +63,12 @@ class TaskServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private TagService tagService;
+
+    @Mock
+    private MilestoneService milestoneService;
 
     @InjectMocks
     private TaskService taskService;
@@ -107,17 +116,36 @@ class TaskServiceTest {
     }
 
     @Test
-    void createTaskLeavesNewMilestoneAndNewTagAsTodo() {
+    void createTaskCreatesAndAssignsNewMilestoneAndNewTag() {
         Project project = project(1L, ProjectStatus.ACTIVE);
+        Milestone milestone = milestone(10L, project);
+        Tag backend = tag(100L, project, "Backend");
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(milestoneService.createMilestone(
+                eq(1L),
+                eq("user1"),
+                any(MilestoneCreateRequest.class)
+        )).thenReturn(new MilestoneDto(
+                10L,
+                "Sprint 1",
+                LocalDate.of(2026, 5, 15),
+                LocalDate.of(2026, 5, 20)
+        ));
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
+        when(tagService.createTag(eq(1L), eq("user1"), any(TagCreateRequest.class)))
+                .thenReturn(new TagDto(100L, "Backend"));
+        when(tagRepository.findAllByTagIdIn(anyCollection())).thenReturn(List.of(backend));
         when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> {
             Task task = invocation.getArgument(0);
             ReflectionTestUtils.setField(task, "taskId", 20L);
             return task;
         });
-        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of());
+        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of(new TaskTag(
+                task(20L, project, milestone),
+                backend
+        )));
 
         TaskCreateRequest request = new TaskCreateRequest(null, 1L, "Task", "Content", null, null);
 
@@ -133,11 +161,11 @@ class TaskServiceTest {
                 "user1"
         );
 
-        assertThat(response.milestoneId()).isNull();
-        assertThat(response.tags()).isEmpty();
-        verify(milestoneRepository, never()).save(any(Milestone.class));
-        verify(tagRepository, never()).save(any(Tag.class));
-        verify(taskTagRepository, never()).saveAll(any());
+        assertThat(response.milestoneId()).isEqualTo(10L);
+        assertThat(response.tags()).extracting("name").containsExactly("Backend");
+        verify(milestoneService).createMilestone(eq(1L), eq("user1"), any(MilestoneCreateRequest.class));
+        verify(tagService).createTag(eq(1L), eq("user1"), any(TagCreateRequest.class));
+        verify(taskTagRepository).saveAll(any());
     }
 
     @Test

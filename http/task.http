@@ -1,6 +1,6 @@
 @host = http://localhost:8080
 @projectId = 1
-@taskId = 1
+@taskId = 9
 @commentId = 1
 @milestoneId = 1
 @tagId1 = 1
@@ -36,17 +36,19 @@ X-User-Id: {{userId}}
 }
 
 ### Task 생성 - 새 마일스톤/태그 파라미터 TODO 확인용
-# 현재 TaskService에서는 새 마일스톤/태그를 직접 생성하지 않고 TODO로 남겨둔 상태입니다.
-POST {{host}}/projects/{{projectId}}/tasks?newMilestoneName=Sprint%201&newMilestoneStartDate=2026-05-15&newMilestoneEndDate=2026-05-20&newTagName=Backend
+ # 새 마일스톤/태그를 생성한 뒤 Task에 연결합니다.
+ # 같은 프로젝트에 동일한 마일스톤/태그 이름이 있으면 409가 발생합니다.
+POST {{host}}/projects/{{projectId}}/tasks?newMilestoneName=Sprint%2088&newMilestoneStartDate=2026-05-15&newMilestoneEndDate=2026-05-20&newTagName=99
 Content-Type: application/json
 X-User-Id: {{userId}}
 
-{
-  "projectId": {{projectId}},
-  "title": "새 마일스톤 태그 TODO Task",
-  "content": "추후 MilestoneService, TagService 연결 후 동작을 완성합니다.",
-  "writerId": "ignored"
-}
+  {
+    "projectId": {{projectId}},
+    "title": "새 마일스톤 태그 생성 Task",
+    "content": "새 마일스톤과 새 태그를 생성하고 Task에 연결합니다.",
+    "writerId": "ignored"
+  }
+
 
 ### Task 수정
 POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/edit

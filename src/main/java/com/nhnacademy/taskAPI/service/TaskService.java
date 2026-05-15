@@ -11,8 +11,10 @@ import com.nhnacademy.taskAPI.entity.TaskTag;
 import com.nhnacademy.taskAPI.exception.BusinessException;
 import com.nhnacademy.taskAPI.exception.ErrorCode;
 import com.nhnacademy.taskAPI.repository.*;
+import com.nhnacademy.taskAPI.task.MilestoneCreateRequest;
 import com.nhnacademy.taskAPI.task.CommentDto;
 import com.nhnacademy.taskAPI.task.MilestoneDto;
+import com.nhnacademy.taskAPI.task.TagCreateRequest;
 import com.nhnacademy.taskAPI.task.TagDto;
 import com.nhnacademy.taskAPI.task.TaskCreateRequest;
 import com.nhnacademy.taskAPI.task.TaskDetailDto;
@@ -40,6 +42,8 @@ public class TaskService {
     private final TagRepository tagRepository;
     private final MilestoneRepository milestoneRepository;
     private final CommentRepository commentRepository;
+    private final TagService tagService;
+    private final MilestoneService milestoneService;
 
     public TaskDetailDto getTask(Long projectId, Long taskId, String userId) {
         validateProjectMember(projectId, userId);
@@ -74,11 +78,12 @@ public class TaskService {
                 milestoneId,
                 newMilestoneName,
                 newMilestoneStartDate,
-                newMilestoneEndDate
+                newMilestoneEndDate,
+                userId
         );
         Task task = taskRepository.save(new Task(project, milestone, request.title(), request.content(), userId));
 
-        List<Tag> tags = resolveTags(project, tagIds, newTagName);
+        List<Tag> tags = resolveTags(project, tagIds, newTagName, userId);
         if (!tags.isEmpty()) {
             taskTagRepository.saveAll(tags.stream()
                     .map(tag -> new TaskTag(task, tag))
@@ -187,12 +192,20 @@ public class TaskService {
             Long milestoneId,
             String newMilestoneName,
             LocalDate newMilestoneStartDate,
-            LocalDate newMilestoneEndDate
+            LocalDate newMilestoneEndDate,
+            String userId
     ) {
-        // TODO: MilestoneService 구현 후 newMilestoneName/newMilestoneStartDate/newMilestoneEndDate로
-        //       새 마일스톤을 생성하고, 생성된 milestoneId를 Task에 할당하도록 연결한다.
         if (hasText(newMilestoneName)) {
-            return null;
+            MilestoneDto milestone = milestoneService.createMilestone(
+                    project.getProjectId(),
+                    userId,
+                    new MilestoneCreateRequest(
+                            newMilestoneName,
+                            newMilestoneStartDate,
+                            newMilestoneEndDate
+                    )
+            );
+            return getMilestoneInProject(project.getProjectId(), milestone.milestoneId());
         }
 
         if (milestoneId == null) {
@@ -202,18 +215,26 @@ public class TaskService {
         return getMilestoneInProject(project.getProjectId(), milestoneId);
     }
 
-    private List<Tag> resolveTags(Project project, List<Long> tagIds, String newTagName) {
-        // TODO: TagService 구현 후 newTagName으로 새 태그를 생성하고,
-        //       생성된 tagId를 기존 tagIds와 함께 TaskTag에 연결한다.
-        if (hasText(newTagName) && (tagIds == null || tagIds.isEmpty())) {
+    private List<Tag> resolveTags(Project project, List<Long> tagIds, String newTagName, String userId) {
+        Set<Long> resolvedTagIds = new HashSet<>();
+        if (tagIds != null) {
+            resolvedTagIds.addAll(tagIds);
+        }
+
+        if (hasText(newTagName)) {
+            TagDto tag = tagService.createTag(
+                    project.getProjectId(),
+                    userId,
+                    new TagCreateRequest(newTagName)
+            );
+            resolvedTagIds.add(tag.tagId());
+        }
+
+        if (resolvedTagIds.isEmpty()) {
             return List.of();
         }
 
-        if (tagIds == null || tagIds.isEmpty()) {
-            return List.of();
-        }
-
-        return getTagsInProject(project.getProjectId(), tagIds);
+        return getTagsInProject(project.getProjectId(), List.copyOf(resolvedTagIds));
     }
 
     private boolean hasText(String value) {
