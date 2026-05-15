@@ -11,5 +11,6 @@ public record ProjectDetailDto(
         String adminId,
         List<ProjectMemberDto> members,
         List<TaskDto> tasks,
-        List<MilestoneDto> milestones
+        List<MilestoneDto> milestones,
+        List<TagDto> tags
 ) {}
