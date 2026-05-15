@@ -48,6 +48,7 @@ public class ProjectService {
                 .stream()
                 .map(task -> new TaskDto (
                         task.getTaskId(),
+                        task.getMilestone() == null ? null : task.getMilestone().getMilestoneId(),
                         task.getTitle(),
                         task.getContent(),
                         task.getWriterId(),
@@ -68,9 +69,11 @@ public class ProjectService {
                 project.getProjectId(),
                 project.getName(),
                 project.getStatus().name(),
+                project.getAdminId(),
                 members,
                 tasks,
                 milestones
+
         );
     }
     @Transactional

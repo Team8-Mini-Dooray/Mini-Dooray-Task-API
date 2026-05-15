@@ -6,6 +6,7 @@ public record ProjectDetailDto(
         Long projectId,
         String name,
         String status,
+        String adminId,
         List<ProjectMemberDto> members,
         List<TaskDto> tasks,
         List<MilestoneDto> milestones
