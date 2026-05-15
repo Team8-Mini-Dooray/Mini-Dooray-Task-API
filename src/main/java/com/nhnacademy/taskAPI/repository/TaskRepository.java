@@ -11,4 +11,4 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByMilestone_MilestoneIdAndProject_ProjectId(Long milestoneId, Long projectId);
     Optional<Task> findByTaskIdAndProject_ProjectId(Long taskId, Long projectId);
 }
-}
+

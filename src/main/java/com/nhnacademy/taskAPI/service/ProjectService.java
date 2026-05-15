@@ -65,14 +65,6 @@ public class ProjectService {
                         milestone.getEndDate()
                 ))
                 .toList();
-        List<TagDto> tags = tagRepository.findByProject_ProjectId(projectId)
-                .stream()
-                .map(tag -> new TagDto(
-                        tag.getTagId(),
-                        tag.getName()
-                ))
-                .toList();
-
         return new ProjectDetailDto(
                 project.getProjectId(),
                 project.getName(),
@@ -80,8 +72,7 @@ public class ProjectService {
                 project.getAdminId(),
                 members,
                 tasks,
-                milestones,
-                tags
+                milestones
         );
     }
     @Transactional

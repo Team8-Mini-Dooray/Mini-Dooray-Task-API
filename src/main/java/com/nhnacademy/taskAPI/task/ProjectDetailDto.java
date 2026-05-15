@@ -1,7 +1,5 @@
 package com.nhnacademy.taskAPI.task;
 
-import com.nhnacademy.taskAPI.entity.Tag;
-
 import java.util.List;
 
 public record ProjectDetailDto(
@@ -11,6 +9,5 @@ public record ProjectDetailDto(
         String adminId,
         List<ProjectMemberDto> members,
         List<TaskDto> tasks,
-        List<MilestoneDto> milestones,
-        List<TagDto> tags
+        List<MilestoneDto> milestones
 ) {}
