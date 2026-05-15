@@ -43,7 +43,7 @@ public class ProjectController {
         ProjectDto response = projectService.createProject(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-    @PostMapping("/{projectId}/edit")
+    @PutMapping("/{projectId}/edit")
     public ResponseEntity<ProjectDto> updateProject(
             @PathVariable Long projectId,
             @RequestHeader("X-User-Id") String userId,

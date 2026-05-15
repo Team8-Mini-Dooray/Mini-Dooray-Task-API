@@ -36,7 +36,7 @@ public class TagController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/{tagId}/edit")
+    @PutMapping("/{tagId}/edit")
     public ResponseEntity<TagDto> updateTag(
             @PathVariable Long projectId,
             @PathVariable Long tagId,

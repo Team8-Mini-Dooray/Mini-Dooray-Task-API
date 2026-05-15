@@ -44,7 +44,7 @@ public class MileStoneController {
         MilestoneDto response = milestoneService.createMilestone(projectId, userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-    @PostMapping("/{milestoneId}/edit")
+    @PutMapping("/{milestoneId}/edit")
     public ResponseEntity<MilestoneDto> updateMilestone(
             @PathVariable Long projectId,
             @PathVariable Long milestoneId,
