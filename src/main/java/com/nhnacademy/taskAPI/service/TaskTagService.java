@@ -111,7 +111,7 @@ public class TaskTagService {
         );
     }
 
-    private List<TagDto> getTaskTags(Long taskId) {
+    List<TagDto> getTaskTags(Long taskId) {
         return taskTagRepository.findByTask_TaskId(taskId)
                 .stream()
                 .map(TaskTag::getTag)

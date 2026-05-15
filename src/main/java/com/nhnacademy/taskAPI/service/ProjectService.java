@@ -22,6 +22,7 @@ public class ProjectService {
     private final TaskRepository taskRepository;
     private final MilestoneRepository milestoneRepository;
     private final TagRepository tagRepository;
+    private final TaskTagService taskTagService;
 
     public List<ProjectDto> getProjects(String userId) {
         validateUserId(userId);
@@ -51,7 +52,7 @@ public class ProjectService {
                         task.getContent(),
                         task.getWriterId(),
                         task.getCreatedAt(),
-                        List.of()
+                        taskTagService.getTaskTags(task.getTaskId())
                 ))
                 .toList();
 
