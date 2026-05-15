@@ -1,5 +1,7 @@
 package com.nhnacademy.taskAPI.task;
 
+import com.nhnacademy.taskAPI.entity.Tag;
+
 import java.util.List;
 
 public record ProjectDetailDto(

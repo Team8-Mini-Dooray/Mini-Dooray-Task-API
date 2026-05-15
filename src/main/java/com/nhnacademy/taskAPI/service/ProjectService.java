@@ -5,10 +5,7 @@ import com.nhnacademy.taskAPI.entity.ProjectMember;
 import com.nhnacademy.taskAPI.entity.ProjectStatus;
 import com.nhnacademy.taskAPI.exception.BusinessException;
 import com.nhnacademy.taskAPI.exception.ErrorCode;
-import com.nhnacademy.taskAPI.repository.MilestoneRepository;
-import com.nhnacademy.taskAPI.repository.ProjectMemberRepository;
-import com.nhnacademy.taskAPI.repository.ProjectRepository;
-import com.nhnacademy.taskAPI.repository.TaskRepository;
+import com.nhnacademy.taskAPI.repository.*;
 import com.nhnacademy.taskAPI.task.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,6 +21,8 @@ public class ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final TaskRepository taskRepository;
     private final MilestoneRepository milestoneRepository;
+    private final TagRepository tagRepository;
+    private final TaskTagService taskTagService;
 
     public List<ProjectDto> getProjects(String userId) {
         validateUserId(userId);
@@ -53,7 +52,7 @@ public class ProjectService {
                         task.getContent(),
                         task.getWriterId(),
                         task.getCreatedAt(),
-                        List.of()
+                        taskTagService.getTaskTags(task.getTaskId())
                 ))
                 .toList();
 
@@ -66,6 +65,7 @@ public class ProjectService {
                         milestone.getEndDate()
                 ))
                 .toList();
+
         return new ProjectDetailDto(
                 project.getProjectId(),
                 project.getName(),

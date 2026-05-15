@@ -1,5 +1,5 @@
 @baseUrl = http://localhost:8080
-@projectId = 1
+@projectId = 8
 
 ### 1. 프로젝트 생성 - user1이 admin/member로 자동 등록
 POST {{baseUrl}}/projects
