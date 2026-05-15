@@ -9,6 +9,8 @@ public record TaskDetailDto(
         String content,
         String writerId,
         LocalDateTime createdAt,
+        MilestoneDto milestone,
+        List<TagDto> tags,
         List<CommentDto> comments
 ) {
 }
