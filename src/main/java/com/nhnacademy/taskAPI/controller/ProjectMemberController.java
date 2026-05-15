@@ -33,7 +33,7 @@ public class ProjectMemberController {
         ProjectMemberDto response = projectMemberService.addMember(projectId, userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-    @DeleteMapping("/{userId}")
+    @PostMapping("/{userId}/delete")
     public ResponseEntity<Void> removeMember(
             @PathVariable Long projectId,
             @RequestHeader("X-User-Id") String requestId,
