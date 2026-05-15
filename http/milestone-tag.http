@@ -1,0 +1,207 @@
+@baseUrl = http://localhost:8080
+@projectId = 1
+@milestoneId = 1
+@tagId = 1
+
+### 0. 테스트용 프로젝트 생성 - user1이 admin/member로 자동 등록
+POST {{baseUrl}}/projects
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Milestone Tag Test Project"
+}
+
+### 0-1. 위 응답의 projectId를 확인해서 @projectId 값 변경
+# 예: "projectId": 7 이면
+# @projectId = 7 로 수정 후 아래 요청 실행
+
+
+### 1. 마일스톤 목록 조회 - 처음에는 빈 배열 예상
+GET {{baseUrl}}/projects/{{projectId}}/milestones
+X-User-Id: user1
+
+
+### 2. 마일스톤 생성 - 201 예상
+POST {{baseUrl}}/projects/{{projectId}}/milestones
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Sprint 1",
+  "startDate": "2026-05-01",
+  "endDate": "2026-05-15"
+}
+
+### 2-1. 위 응답의 milestoneId를 확인해서 @milestoneId 값 변경
+# 예: "milestoneId": 3 이면
+# @milestoneId = 3
+
+
+### 3. 마일스톤 목록 조회 - Sprint 1 있어야 함
+GET {{baseUrl}}/projects/{{projectId}}/milestones
+X-User-Id: user1
+
+
+### 4. 마일스톤 상세 조회 - tasks는 아직 빈 배열이어도 정상
+GET {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}
+X-User-Id: user1
+
+
+### 5. 마일스톤 수정 - 200 예상
+POST {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/edit
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Sprint 1 Updated",
+  "startDate": "2026-05-02",
+  "endDate": "2026-05-16"
+}
+
+
+### 6. 마일스톤 상세 조회 - 수정 내용 확인
+GET {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}
+X-User-Id: user1
+
+
+### 7. 중복 마일스톤 생성 준비 - Sprint 2 생성
+POST {{baseUrl}}/projects/{{projectId}}/milestones
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Sprint 2",
+  "startDate": "2026-05-17",
+  "endDate": "2026-05-31"
+}
+
+
+### 8. 중복 마일스톤 이름 수정 - 409 DUPLICATE_MILESTONE_NAME 예상
+POST {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/edit
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Sprint 2",
+  "startDate": "2026-05-02",
+  "endDate": "2026-05-16"
+}
+
+
+### 9. 잘못된 날짜 범위 - 400 INVALID_DATE_RANGE 예상
+POST {{baseUrl}}/projects/{{projectId}}/milestones
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Invalid Sprint",
+  "startDate": "2026-06-10",
+  "endDate": "2026-06-01"
+}
+
+
+### 10. 마일스톤 삭제 - 204 No Content 예상
+POST {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/delete
+X-User-Id: user1
+
+
+### 11. 마일스톤 상세 조회 - 404 MILESTONE_NOT_FOUND 예상
+GET {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}
+X-User-Id: user1
+
+
+### 12. 태그 목록 조회 - 처음에는 빈 배열 예상
+GET {{baseUrl}}/projects/{{projectId}}/tags
+X-User-Id: user1
+
+
+### 13. 태그 생성 - 201 예상
+POST {{baseUrl}}/projects/{{projectId}}/tags
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Backend"
+}
+
+### 13-1. 위 응답의 tagId를 확인해서 @tagId 값 변경
+# 예: "tagId": 2 이면
+# @tagId = 2
+
+
+### 14. 태그 목록 조회 - Backend 있어야 함
+GET {{baseUrl}}/projects/{{projectId}}/tags
+X-User-Id: user1
+
+
+### 15. 태그 수정 - 200 예상
+POST {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/edit
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Backend Updated"
+}
+
+
+### 16. 태그 목록 조회 - Backend Updated 확인
+GET {{baseUrl}}/projects/{{projectId}}/tags
+X-User-Id: user1
+
+
+### 17. 중복 태그 생성 준비 - Frontend 생성
+POST {{baseUrl}}/projects/{{projectId}}/tags
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Frontend"
+}
+
+
+### 18. 중복 태그 이름 수정 - 409 DUPLICATE_TAG_NAME 예상
+POST {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/edit
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Frontend"
+}
+
+
+### 19. 태그 삭제 - 204 No Content 예상
+POST {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/delete
+X-User-Id: user1
+
+
+### 20. 태그 목록 조회 - 삭제된 tagId 없어야 함
+GET {{baseUrl}}/projects/{{projectId}}/tags
+X-User-Id: user1
+
+
+### 21. 프로젝트 종료
+POST {{baseUrl}}/projects/{{projectId}}/close
+X-User-Id: user1
+
+
+### 22. 종료된 프로젝트에 마일스톤 생성 - 409 PROJECT_NOT_ACTIVE 예상
+POST {{baseUrl}}/projects/{{projectId}}/milestones
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Should Fail Milestone",
+  "startDate": "2026-06-01",
+  "endDate": "2026-06-10"
+}
+
+
+### 23. 종료된 프로젝트에 태그 생성 - 409 PROJECT_NOT_ACTIVE 예상
+POST {{baseUrl}}/projects/{{projectId}}/tags
+Content-Type: application/json
+X-User-Id: user1
+
+{
+  "name": "Should Fail Tag"
+}
