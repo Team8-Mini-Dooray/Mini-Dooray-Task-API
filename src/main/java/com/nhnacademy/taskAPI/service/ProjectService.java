@@ -52,7 +52,8 @@ public class ProjectService {
                         task.getTitle(),
                         task.getContent(),
                         task.getWriterId(),
-                        task.getCreatedAt()
+                        task.getCreatedAt(),
+                        List.of()
                 ))
                 .toList();
 
@@ -96,7 +97,6 @@ public class ProjectService {
 
         Project project = getProject(projectId);
         validateProjectAdmin(project, userId);
-        validateProjectWritable(project);
 
         ProjectStatus status = parseProjectStatus(request.status());
         project.updateName(request.name());
