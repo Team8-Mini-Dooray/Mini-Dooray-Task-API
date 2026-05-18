@@ -85,6 +85,24 @@ class MilestoneServiceTest {
     }
 
     @Test
+    void getMilestoneDetailReturnsTaskWithoutMilestone() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Milestone milestone = milestone(10L, project, "Sprint 1");
+        Task task = task(20L, project, null);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
+        when(taskRepository.findByMilestone_MilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(List.of(task));
+
+        MilestoneDetailDto response = milestoneService.getMilestoneDetail(1L, 10L, "user1");
+
+        assertThat(response.tasks()).hasSize(1);
+        assertThat(response.tasks().get(0).taskId()).isEqualTo(20L);
+        assertThat(response.tasks().get(0).milestoneId()).isNull();
+    }
+
+    @Test
     void createMilestoneCreatesMilestone() {
         Project project = project(1L, ProjectStatus.ACTIVE);
 
@@ -110,6 +128,41 @@ class MilestoneServiceTest {
         assertThat(response.startDate()).isEqualTo(LocalDate.of(2026, 5, 1));
         assertThat(response.endDate()).isEqualTo(LocalDate.of(2026, 5, 15));
         verify(milestoneRepository).save(any(Milestone.class));
+    }
+
+    @Test
+    void createAndUpdateMilestoneAllowOpenDateRange() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Milestone milestone = milestone(10L, project, "Sprint 1");
+        MilestoneCreateRequest createRequest = new MilestoneCreateRequest(
+                "Sprint 1",
+                null,
+                LocalDate.of(2026, 5, 15)
+        );
+        MilestoneCreateRequest updateRequest = new MilestoneCreateRequest(
+                "Sprint 1 Updated",
+                LocalDate.of(2026, 5, 1),
+                null
+        );
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(milestoneRepository.existsByProject_ProjectIdAndName(1L, "Sprint 1")).thenReturn(false);
+        when(milestoneRepository.save(any(Milestone.class))).thenAnswer(invocation -> {
+            Milestone savedMilestone = invocation.getArgument(0);
+            ReflectionTestUtils.setField(savedMilestone, "milestoneId", 11L);
+            return savedMilestone;
+        });
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
+        when(milestoneRepository.existsByProject_ProjectIdAndName(1L, "Sprint 1 Updated")).thenReturn(false);
+
+        MilestoneDto created = milestoneService.createMilestone(1L, "user1", createRequest);
+        MilestoneDto updated = milestoneService.updateMilestone(1L, 10L, "user1", updateRequest);
+
+        assertThat(created.startDate()).isNull();
+        assertThat(created.endDate()).isEqualTo(LocalDate.of(2026, 5, 15));
+        assertThat(updated.startDate()).isEqualTo(LocalDate.of(2026, 5, 1));
+        assertThat(updated.endDate()).isNull();
     }
 
     @Test

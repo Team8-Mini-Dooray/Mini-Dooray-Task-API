@@ -108,6 +108,26 @@ class ProjectServiceTest {
     }
 
     @Test
+    void getProjectDetailReturnsTaskWithoutMilestone() {
+        Project project = project(1L, "Project A", ProjectStatus.ACTIVE, "admin");
+        ProjectMember user1 = new ProjectMember(project, "user1");
+        Task task = task(20L, project, null);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(projectMemberRepository.findByProject_ProjectId(1L)).thenReturn(List.of(user1));
+        when(taskRepository.findByProject_ProjectId(1L)).thenReturn(List.of(task));
+        when(milestoneRepository.findByProject_ProjectId(1L)).thenReturn(List.of());
+        when(taskTagService.getTaskTags(20L)).thenReturn(List.of());
+
+        ProjectDetailDto response = projectService.getProjectDetail(1L, "user1");
+
+        assertThat(response.tasks()).hasSize(1);
+        assertThat(response.tasks().get(0).taskId()).isEqualTo(20L);
+        assertThat(response.tasks().get(0).milestoneId()).isNull();
+    }
+
+    @Test
     void createProjectCreatesProjectAndRegistersCreatorAsMember() {
         when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
             Project project = invocation.getArgument(0);
