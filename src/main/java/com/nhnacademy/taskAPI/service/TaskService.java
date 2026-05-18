@@ -45,6 +45,25 @@ public class TaskService {
     private final TagService tagService;
     private final MilestoneService milestoneService;
 
+    public List<TaskDto> getTasks(Long projectId, Long tagId, String userId) {
+        getProject(projectId);
+        validateProjectMember(projectId, userId);
+
+        if (tagId == null) {
+            return taskRepository.findByProject_ProjectId(projectId)
+                    .stream()
+                    .map(this::toTaskDto)
+                    .toList();
+        }
+
+        getTagsInProject(projectId, List.of(tagId));
+        return taskTagRepository.findByTask_Project_ProjectIdAndTag_TagId(projectId, tagId)
+                .stream()
+                .map(TaskTag::getTask)
+                .map(this::toTaskDto)
+                .toList();
+    }
+
     public TaskDetailDto getTask(Long projectId, Long taskId, String userId) {
         validateProjectMember(projectId, userId);
 

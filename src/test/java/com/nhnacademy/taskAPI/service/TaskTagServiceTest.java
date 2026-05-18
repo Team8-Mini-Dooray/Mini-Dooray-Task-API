@@ -125,6 +125,65 @@ class TaskTagServiceTest {
     }
 
     @Test
+    void updateTaskTagsRejectsMissingTag() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task = task(20L, project);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.of(task));
+        when(tagRepository.findAllByTagIdIn(anyCollection())).thenReturn(List.of());
+
+        assertThatThrownBy(() -> taskTagService.updateTaskTags(
+                1L,
+                20L,
+                new TaskTagRequest(List.of(100L)),
+                "user1"
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.TAG_NOT_FOUND);
+    }
+
+    @Test
+    void updateTaskTagsRejectsTaskInOtherProject() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.empty());
+        when(taskRepository.existsById(20L)).thenReturn(true);
+
+        assertThatThrownBy(() -> taskTagService.updateTaskTags(
+                1L,
+                20L,
+                new TaskTagRequest(List.of(100L)),
+                "user1"
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.TASK_NOT_IN_PROJECT);
+    }
+
+    @Test
+    void updateTaskTagsRejectsNonProjectMember() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(false);
+
+        assertThatThrownBy(() -> taskTagService.updateTaskTags(
+                1L,
+                20L,
+                new TaskTagRequest(List.of(100L)),
+                "user1"
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NOT_PROJECT_MEMBER);
+    }
+
+    @Test
     void updateTaskTagsRejectsTerminatedProject() {
         Project project = project(1L, ProjectStatus.TERMINATED);
 
