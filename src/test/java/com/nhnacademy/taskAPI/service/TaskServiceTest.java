@@ -85,7 +85,7 @@ class TaskServiceTest {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
         when(taskRepository.findByProject_ProjectId(1L)).thenReturn(List.of(task));
-        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of(new TaskTag(task, backend)));
+        when(taskTagRepository.findByTask_TaskIdIn(List.of(20L))).thenReturn(List.of(new TaskTag(task, backend)));
 
         List<TaskDto> response = taskService.getTasks(1L, null, "user1");
 
@@ -105,7 +105,7 @@ class TaskServiceTest {
         when(tagRepository.findAllByTagIdIn(anyCollection())).thenReturn(List.of(backend));
         when(taskTagRepository.findByTask_Project_ProjectIdAndTag_TagId(1L, 100L))
                 .thenReturn(List.of(new TaskTag(task, backend)));
-        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of(new TaskTag(task, backend)));
+        when(taskTagRepository.findByTask_TaskIdIn(List.of(20L))).thenReturn(List.of(new TaskTag(task, backend)));
 
         List<TaskDto> response = taskService.getTasks(1L, 100L, "user1");
 

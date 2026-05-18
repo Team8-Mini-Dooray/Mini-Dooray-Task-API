@@ -28,7 +28,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
@@ -50,18 +55,15 @@ public class TaskService {
         validateProjectMember(projectId, userId);
 
         if (tagId == null) {
-            return taskRepository.findByProject_ProjectId(projectId)
-                    .stream()
-                    .map(this::toTaskDto)
-                    .toList();
+            return toTaskDtos(taskRepository.findByProject_ProjectId(projectId));
         }
 
         getTagsInProject(projectId, List.of(tagId));
-        return taskTagRepository.findByTask_Project_ProjectIdAndTag_TagId(projectId, tagId)
+        List<Task> tasks = taskTagRepository.findByTask_Project_ProjectIdAndTag_TagId(projectId, tagId)
                 .stream()
                 .map(TaskTag::getTask)
-                .map(this::toTaskDto)
                 .toList();
+        return toTaskDtos(tasks);
     }
 
     public TaskDetailDto getTask(Long projectId, Long taskId, String userId) {
@@ -269,6 +271,38 @@ public class TaskService {
                 task.getWriterId(),
                 task.getCreatedAt(),
                 getTaskTags(task.getTaskId())
+        );
+    }
+
+    private List<TaskDto> toTaskDtos(List<Task> tasks) {
+        if (tasks.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> taskIds = tasks.stream()
+                .map(Task::getTaskId)
+                .toList();
+        Map<Long, List<TagDto>> tagsByTaskId = taskTagRepository.findByTask_TaskIdIn(taskIds)
+                .stream()
+                .collect(groupingBy(
+                        taskTag -> taskTag.getTask().getTaskId(),
+                        mapping(taskTag -> toTagDto(taskTag.getTag()), toList())
+                ));
+
+        return tasks.stream()
+                .map(task -> toTaskDto(task, tagsByTaskId.getOrDefault(task.getTaskId(), List.of())))
+                .toList();
+    }
+
+    private TaskDto toTaskDto(Task task, List<TagDto> tags) {
+        return new TaskDto(
+                task.getTaskId(),
+                task.getMilestone() == null ? null : task.getMilestone().getMilestoneId(),
+                task.getTitle(),
+                task.getContent(),
+                task.getWriterId(),
+                task.getCreatedAt(),
+                tags
         );
     }
 
