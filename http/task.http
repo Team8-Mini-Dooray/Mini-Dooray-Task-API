@@ -89,7 +89,7 @@ X-User-Id: {{userId}}
 }
 
 ### Task 태그 전체 교체
-PUT {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
+POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
 Content-Type: application/json
 X-User-Id: {{userId}}
 
@@ -98,7 +98,7 @@ X-User-Id: {{userId}}
 }
 
 ### Task 태그 전체 교체 - 실패 케이스: 태그 0개
-PUT {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
+POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
 Content-Type: application/json
 X-User-Id: {{userId}}
 
