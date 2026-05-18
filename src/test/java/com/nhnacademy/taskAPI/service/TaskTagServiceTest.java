@@ -12,9 +12,11 @@ import com.nhnacademy.taskAPI.repository.ProjectRepository;
 import com.nhnacademy.taskAPI.repository.TagRepository;
 import com.nhnacademy.taskAPI.repository.TaskRepository;
 import com.nhnacademy.taskAPI.repository.TaskTagRepository;
+import com.nhnacademy.taskAPI.task.TagDto;
 import com.nhnacademy.taskAPI.task.TaskDto;
 import com.nhnacademy.taskAPI.task.TaskTagRequest;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +53,36 @@ class TaskTagServiceTest {
 
     @InjectMocks
     private TaskTagService taskTagService;
+
+    @Test
+    void getTaskTagsByTaskIdReturnsEmptyMapWhenTaskIdsAreEmpty() {
+        Map<Long, List<TagDto>> response = taskTagService.getTaskTagsByTaskId(List.of());
+
+        assertThat(response).isEmpty();
+        verifyNoInteractions(taskTagRepository);
+    }
+
+    @Test
+    void getTaskTagsByTaskIdGroupsTagsByTaskId() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task1 = task(20L, project);
+        Task task2 = task(21L, project);
+        Tag backend = tag(100L, project, "Backend");
+        Tag urgent = tag(101L, project, "Urgent");
+        Tag frontend = tag(102L, project, "Frontend");
+
+        when(taskTagRepository.findByTask_TaskIdIn(List.of(20L, 21L))).thenReturn(List.of(
+                new TaskTag(task1, backend),
+                new TaskTag(task1, urgent),
+                new TaskTag(task2, frontend)
+        ));
+
+        Map<Long, List<TagDto>> response = taskTagService.getTaskTagsByTaskId(List.of(20L, 21L));
+
+        assertThat(response).containsOnlyKeys(20L, 21L);
+        assertThat(response.get(20L)).extracting("name").containsExactly("Backend", "Urgent");
+        assertThat(response.get(21L)).extracting("name").containsExactly("Frontend");
+    }
 
     @Test
     void updateTaskTagsReplacesAllTaskTags() {

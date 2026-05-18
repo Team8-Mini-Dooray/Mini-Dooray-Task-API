@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,13 @@ public class ProjectService {
                 .map(member -> new ProjectMemberDto(member.getUserId()))
                 .toList();
 
-        List<TaskDto> tasks = taskRepository.findByProject_ProjectId(projectId)
+        List<com.nhnacademy.taskAPI.entity.Task> projectTasks = taskRepository.findByProject_ProjectId(projectId);
+        List<Long> taskIds = projectTasks.stream()
+                .map(com.nhnacademy.taskAPI.entity.Task::getTaskId)
+                .toList();
+        Map<Long, List<TagDto>> tagsByTaskId = taskTagService.getTaskTagsByTaskId(taskIds);
+
+        List<TaskDto> tasks = projectTasks
                 .stream()
                 .map(task -> new TaskDto (
                         task.getTaskId(),
@@ -52,7 +59,7 @@ public class ProjectService {
                         task.getContent(),
                         task.getWriterId(),
                         task.getCreatedAt(),
-                        taskTagService.getTaskTags(task.getTaskId())
+                        tagsByTaskId.getOrDefault(task.getTaskId(), List.of())
                 ))
                 .toList();
 

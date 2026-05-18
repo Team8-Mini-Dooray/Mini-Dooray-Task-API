@@ -16,6 +16,7 @@ import com.nhnacademy.taskAPI.task.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -85,7 +86,8 @@ class ProjectServiceTest {
         when(projectMemberRepository.findByProject_ProjectId(1L)).thenReturn(List.of(admin, user1));
         when(taskRepository.findByProject_ProjectId(1L)).thenReturn(List.of(task));
         when(milestoneRepository.findByProject_ProjectId(1L)).thenReturn(List.of(milestone));
-        when(taskTagService.getTaskTags(20L)).thenReturn(List.of(new TagDto(100L, "Bug")));
+        when(taskTagService.getTaskTagsByTaskId(List.of(20L)))
+                .thenReturn(Map.of(20L, List.of(new TagDto(100L, "Bug"))));
 
         ProjectDetailDto response = projectService.getProjectDetail(1L, "user1");
 
@@ -118,7 +120,6 @@ class ProjectServiceTest {
         when(projectMemberRepository.findByProject_ProjectId(1L)).thenReturn(List.of(user1));
         when(taskRepository.findByProject_ProjectId(1L)).thenReturn(List.of(task));
         when(milestoneRepository.findByProject_ProjectId(1L)).thenReturn(List.of());
-        when(taskTagService.getTaskTags(20L)).thenReturn(List.of());
 
         ProjectDetailDto response = projectService.getProjectDetail(1L, "user1");
 
