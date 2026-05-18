@@ -17,10 +17,15 @@ import com.nhnacademy.taskAPI.task.TaskDto;
 import com.nhnacademy.taskAPI.task.TaskTagRequest;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
@@ -117,6 +122,19 @@ public class TaskTagService {
                 .map(TaskTag::getTag)
                 .map(this::toTagDto)
                 .toList();
+    }
+
+    Map<Long, List<TagDto>> getTaskTagsByTaskId(List<Long> taskIds) {
+        if (taskIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return taskTagRepository.findByTask_TaskIdIn(taskIds)
+                .stream()
+                .collect(groupingBy(
+                        taskTag -> taskTag.getTask().getTaskId(),
+                        mapping(taskTag -> toTagDto(taskTag.getTag()), toList())
+                ));
     }
 
     private TagDto toTagDto(Tag tag) {
