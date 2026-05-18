@@ -49,7 +49,7 @@ X-User-Id: user1
 
 
 ### 5. 마일스톤 수정 - 200 예상
-POST {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/edit
+PUT {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/edit
 Content-Type: application/json
 X-User-Id: user1
 
@@ -78,7 +78,7 @@ X-User-Id: user1
 
 
 ### 8. 중복 마일스톤 이름 수정 - 409 DUPLICATE_MILESTONE_NAME 예상
-POST {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/edit
+PUT {{baseUrl}}/projects/{{projectId}}/milestones/{{milestoneId}}/edit
 Content-Type: application/json
 X-User-Id: user1
 
@@ -136,7 +136,7 @@ X-User-Id: user1
 
 
 ### 15. 태그 수정 - 200 예상
-POST {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/edit
+PUT {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/edit
 Content-Type: application/json
 X-User-Id: user1
 
@@ -161,7 +161,7 @@ X-User-Id: user1
 
 
 ### 18. 중복 태그 이름 수정 - 409 DUPLICATE_TAG_NAME 예상
-POST {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/edit
+PUT {{baseUrl}}/projects/{{projectId}}/tags/{{tagId}}/edit
 Content-Type: application/json
 X-User-Id: user1
 
