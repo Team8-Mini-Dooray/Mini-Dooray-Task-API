@@ -4,9 +4,7 @@ import com.nhnacademy.taskAPI.entity.Milestone;
 import com.nhnacademy.taskAPI.entity.Project;
 import com.nhnacademy.taskAPI.entity.ProjectMember;
 import com.nhnacademy.taskAPI.entity.ProjectStatus;
-import com.nhnacademy.taskAPI.entity.Tag;
 import com.nhnacademy.taskAPI.entity.Task;
-import com.nhnacademy.taskAPI.entity.TaskTag;
 import com.nhnacademy.taskAPI.exception.BusinessException;
 import com.nhnacademy.taskAPI.exception.ErrorCode;
 import com.nhnacademy.taskAPI.repository.MilestoneRepository;
@@ -155,11 +153,9 @@ class ProjectServiceTest {
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
-        assertThatThrownBy(() -> projectService.updateProject(
-                1L,
-                "user1",
-                new ProjectUpdateRequest("Project Updated", "DORMANT")
-        ))
+        ProjectUpdateRequest request = new ProjectUpdateRequest("Project Updated", "DORMANT");
+
+        assertThatThrownBy(() -> projectService.updateProject(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.NOT_PROJECT_ADMIN);
@@ -171,11 +167,9 @@ class ProjectServiceTest {
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
-        assertThatThrownBy(() -> projectService.updateProject(
-                1L,
-                "admin",
-                new ProjectUpdateRequest("Project Updated", "INVALID")
-        ))
+        ProjectUpdateRequest request = new ProjectUpdateRequest("Project Updated", "INVALID");
+
+        assertThatThrownBy(() -> projectService.updateProject(1L, "admin", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_PROJECT_STATUS);
@@ -206,6 +200,84 @@ class ProjectServiceTest {
                 .isEqualTo(ErrorCode.NOT_PROJECT_ADMIN);
     }
 
+    @Test
+    void getProjectsRejectsBlankUserId() {
+        assertThatThrownBy(() -> projectService.getProjects(" "))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getProjectDetailRejectsBlankUserId() {
+        assertThatThrownBy(() -> projectService.getProjectDetail(1L, " "))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getProjectDetailRejectsNotFoundProject() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> projectService.getProjectDetail(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
+    }
+
+    @Test
+    void getProjectDetailRejectsNonMember() {
+        Project project = project(1L, "Project A", ProjectStatus.ACTIVE, "admin");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1"))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> projectService.getProjectDetail(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NOT_PROJECT_MEMBER);
+    }
+
+    @Test
+    void updateProjectRejectsTerminatedProject() {
+        Project project = project(1L, "Project A", ProjectStatus.TERMINATED, "admin");
+        ProjectUpdateRequest request = new ProjectUpdateRequest("Project Updated", "ACTIVE");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> projectService.updateProject(1L, "admin", request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PROJECT_NOT_ACTIVE);
+    }
+    @Test
+    void updateProjectRejectsBlankUserId() {
+        ProjectUpdateRequest request = new ProjectUpdateRequest("Project Updated", "ACTIVE");
+
+        assertThatThrownBy(() -> projectService.updateProject(1L, " ", request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void closeProjectRejectsBlankUserId() {
+        assertThatThrownBy(() -> projectService.closeProject(1L, " "))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getProjectsRejectsNullUserId() {
+        assertThatThrownBy(() -> projectService.getProjects(null))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
     private Project project(Long projectId, String name, ProjectStatus status, String adminId) {
         Project project = new Project(name, status, adminId);
         ReflectionTestUtils.setField(project, "projectId", projectId);
@@ -229,9 +301,4 @@ class ProjectServiceTest {
         return task;
     }
 
-    private Tag tag(Long tagId, Project project, String name) {
-        Tag tag = new Tag(project, name);
-        ReflectionTestUtils.setField(tag, "tagId", tagId);
-        return tag;
-    }
 }

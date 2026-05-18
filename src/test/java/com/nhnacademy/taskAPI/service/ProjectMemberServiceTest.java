@@ -77,14 +77,11 @@ class ProjectMemberServiceTest {
     @Test
     void addMemberRejectsNonAdmin() {
         Project project = project(1L, ProjectStatus.ACTIVE, "admin");
+        ProjectMemberRequest request = new ProjectMemberRequest("user2");
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
-        assertThatThrownBy(() -> projectMemberService.addMember(
-                1L,
-                "user1",
-                new ProjectMemberRequest("user2")
-        ))
+        assertThatThrownBy(() -> projectMemberService.addMember(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.NOT_PROJECT_ADMIN);
@@ -93,15 +90,13 @@ class ProjectMemberServiceTest {
     @Test
     void addMemberRejectsDuplicateMember() {
         Project project = project(1L, ProjectStatus.ACTIVE, "admin");
+        ProjectMemberRequest request = new ProjectMemberRequest("user2");
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user2"))
+                .thenReturn(true);
 
-        assertThatThrownBy(() -> projectMemberService.addMember(
-                1L,
-                "admin",
-                new ProjectMemberRequest("user1")
-        ))
+        assertThatThrownBy(() -> projectMemberService.addMember(1L, "admin", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_PROJECT_MEMBER);
@@ -110,14 +105,11 @@ class ProjectMemberServiceTest {
     @Test
     void addMemberRejectsTerminatedProject() {
         Project project = project(1L, ProjectStatus.TERMINATED, "admin");
+        ProjectMemberRequest request = new ProjectMemberRequest("user2");
 
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
 
-        assertThatThrownBy(() -> projectMemberService.addMember(
-                1L,
-                "admin",
-                new ProjectMemberRequest("user1")
-        ))
+        assertThatThrownBy(() -> projectMemberService.addMember(1L, "admin", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.PROJECT_NOT_ACTIVE);
@@ -185,6 +177,42 @@ class ProjectMemberServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.PROJECT_NOT_ACTIVE);
+    }
+    @Test
+    void getMembersRejectsNullUserId() {
+        assertThatThrownBy(() -> projectMemberService.getMembers(1L, null))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+    @Test
+    void getMembersRejectsBlankUserId() {
+        assertThatThrownBy(() -> projectMemberService.getMembers(1L, " "))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+    @Test
+    void getMembersRejectsNonMember() {
+        Project project = project(1L, ProjectStatus.ACTIVE, "admin");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1"))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> projectMemberService.getMembers(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NOT_PROJECT_MEMBER);
+    }
+    @Test
+    void getMembersRejectsNotFoundProject() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> projectMemberService.getMembers(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
     }
 
     private Project project(Long projectId, ProjectStatus status, String adminId) {

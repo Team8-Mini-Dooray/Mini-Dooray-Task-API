@@ -26,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,15 +97,13 @@ class MilestoneServiceTest {
             return milestone;
         });
 
-        MilestoneDto response = milestoneService.createMilestone(
-                1L,
-                "user1",
-                new MilestoneCreateRequest(
-                        "Sprint 1",
-                        LocalDate.of(2026, 5, 1),
-                        LocalDate.of(2026, 5, 15)
-                )
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1",
+                LocalDate.of(2026, 5, 1),
+                LocalDate.of(2026, 5, 15)
         );
+
+        MilestoneDto response = milestoneService.createMilestone(1L, "user1", request);
 
         assertThat(response.milestoneId()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("Sprint 1");
@@ -121,15 +120,13 @@ class MilestoneServiceTest {
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
         when(milestoneRepository.existsByProject_ProjectIdAndName(1L, "Sprint 1")).thenReturn(true);
 
-        assertThatThrownBy(() -> milestoneService.createMilestone(
-                1L,
-                "user1",
-                new MilestoneCreateRequest(
-                        "Sprint 1",
-                        LocalDate.of(2026, 5, 1),
-                        LocalDate.of(2026, 5, 15)
-                )
-        ))
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1",
+                LocalDate.of(2026, 5, 1),
+                LocalDate.of(2026, 5, 15)
+        );
+
+        assertThatThrownBy(() -> milestoneService.createMilestone(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_MILESTONE_NAME);
@@ -142,15 +139,13 @@ class MilestoneServiceTest {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
 
-        assertThatThrownBy(() -> milestoneService.createMilestone(
-                1L,
-                "user1",
-                new MilestoneCreateRequest(
-                        "Sprint 1",
-                        LocalDate.of(2026, 5, 20),
-                        LocalDate.of(2026, 5, 10)
-                )
-        ))
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1",
+                LocalDate.of(2026, 5, 20),
+                LocalDate.of(2026, 5, 10)
+        );
+
+        assertThatThrownBy(() -> milestoneService.createMilestone(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.INVALID_DATE_RANGE);
@@ -163,15 +158,13 @@ class MilestoneServiceTest {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
 
-        assertThatThrownBy(() -> milestoneService.createMilestone(
-                1L,
-                "user1",
-                new MilestoneCreateRequest(
-                        "Sprint 1",
-                        LocalDate.of(2026, 5, 1),
-                        LocalDate.of(2026, 5, 15)
-                )
-        ))
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1",
+                LocalDate.of(2026, 5, 1),
+                LocalDate.of(2026, 5, 15)
+        );
+
+        assertThatThrownBy(() -> milestoneService.createMilestone(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.PROJECT_NOT_ACTIVE);
@@ -187,16 +180,13 @@ class MilestoneServiceTest {
         when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
         when(milestoneRepository.existsByProject_ProjectIdAndName(1L, "Sprint 1 Updated")).thenReturn(false);
 
-        MilestoneDto response = milestoneService.updateMilestone(
-                1L,
-                10L,
-                "user1",
-                new MilestoneCreateRequest(
-                        "Sprint 1 Updated",
-                        LocalDate.of(2026, 5, 2),
-                        LocalDate.of(2026, 5, 16)
-                )
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1 Updated",
+                LocalDate.of(2026, 5, 2),
+                LocalDate.of(2026, 5, 16)
         );
+
+        MilestoneDto response = milestoneService.updateMilestone(1L, 10L, "user1", request);
 
         assertThat(response.milestoneId()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("Sprint 1 Updated");
@@ -215,16 +205,13 @@ class MilestoneServiceTest {
         when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
         when(milestoneRepository.existsByProject_ProjectIdAndName(1L, "Sprint 2")).thenReturn(true);
 
-        assertThatThrownBy(() -> milestoneService.updateMilestone(
-                1L,
-                10L,
-                "user1",
-                new MilestoneCreateRequest(
-                        "Sprint 2",
-                        LocalDate.of(2026, 5, 2),
-                        LocalDate.of(2026, 5, 16)
-                )
-        ))
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 2",
+                LocalDate.of(2026, 5, 2),
+                LocalDate.of(2026, 5, 16)
+        );
+
+        assertThatThrownBy(() -> milestoneService.updateMilestone(1L, 10L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_MILESTONE_NAME);
@@ -242,6 +229,121 @@ class MilestoneServiceTest {
         milestoneService.deleteMilestone(1L, 10L, "user1");
 
         verify(milestoneRepository).delete(milestone);
+    }
+
+
+    @Test
+    void getMilestonesRejectsBlankUserId() {
+        assertThatThrownBy(() -> milestoneService.getMilestones(1L, " "))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getMilestonesRejectsNullUserId() {
+        assertThatThrownBy(() -> milestoneService.getMilestones(1L, null))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getMilestonesRejectsNotFoundProject() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> milestoneService.getMilestones(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
+    }
+
+    @Test
+    void getMilestonesRejectsNonMember() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1"))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> milestoneService.getMilestones(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NOT_PROJECT_MEMBER);
+    }
+
+    @Test
+    void getMilestoneDetailRejectsNotFoundMilestone() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> milestoneService.getMilestoneDetail(1L, 10L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MILESTONE_NOT_FOUND);
+    }
+
+    @Test
+    void updateMilestoneWithSameNameDoesNotCheckDuplicateName() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Milestone milestone = milestone(10L, project, "Sprint 1");
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1",
+                LocalDate.of(2026, 5, 3),
+                LocalDate.of(2026, 5, 17)
+        );
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
+
+        MilestoneDto response = milestoneService.updateMilestone(1L, 10L, "user1", request);
+
+        assertThat(response.milestoneId()).isEqualTo(10L);
+        assertThat(response.name()).isEqualTo("Sprint 1");
+        assertThat(response.startDate()).isEqualTo(LocalDate.of(2026, 5, 3));
+        assertThat(response.endDate()).isEqualTo(LocalDate.of(2026, 5, 17));
+        verify(milestoneRepository, never()).existsByProject_ProjectIdAndName(1L, "Sprint 1");
+    }
+
+    @Test
+    void updateMilestoneRejectsNotFoundMilestone() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1 Updated",
+                LocalDate.of(2026, 5, 2),
+                LocalDate.of(2026, 5, 16)
+        );
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> milestoneService.updateMilestone(1L, 10L, "user1", request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MILESTONE_NOT_FOUND);
+    }
+
+    @Test
+    void updateMilestoneRejectsInvalidDateRange() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        MilestoneCreateRequest request = new MilestoneCreateRequest(
+                "Sprint 1 Updated",
+                LocalDate.of(2026, 5, 20),
+                LocalDate.of(2026, 5, 10)
+        );
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+
+        assertThatThrownBy(() -> milestoneService.updateMilestone(1L, 10L, "user1", request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_DATE_RANGE);
     }
 
     private Project project(Long projectId, ProjectStatus status) {

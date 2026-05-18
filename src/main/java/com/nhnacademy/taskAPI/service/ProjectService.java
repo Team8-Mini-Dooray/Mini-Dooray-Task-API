@@ -95,6 +95,7 @@ public class ProjectService {
 
         Project project = getProject(projectId);
         validateProjectAdmin(project, userId);
+        validateProjectWritable(project);
 
         ProjectStatus status = parseProjectStatus(request.status());
         project.updateName(request.name());
