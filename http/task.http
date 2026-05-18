@@ -1,11 +1,21 @@
 @host = http://localhost:8080
-@projectId = 1
-@taskId = 9
+@projectId = 8
+@taskId = 19
 @commentId = 1
 @milestoneId = 1
-@tagId1 = 1
-@tagId2 = 2
+@tagId1 = 10
+@tagId2 = 10
 @userId = user1
+
+### Task 목록 조회 - 프로젝트 전체
+# 기대 응답: 200 OK, 해당 프로젝트의 Task 목록(List<TaskDto>)
+GET {{host}}/projects/{{projectId}}/tasks
+X-User-Id: {{userId}}
+
+### Task 목록 조회 - tagId 필터
+# 기대 응답: 200 OK, tagId1 태그가 연결된 Task만 반환
+GET {{host}}/projects/{{projectId}}/tasks?tagId={{tagId1}}
+X-User-Id: {{userId}}
 
 ### Task 상세 조회
 GET {{host}}/projects/{{projectId}}/tasks/{{taskId}}
@@ -51,7 +61,7 @@ X-User-Id: {{userId}}
 
 
 ### Task 수정
-POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/edit
+PUT {{host}}/projects/{{projectId}}/tasks/{{taskId}}/edit
 Content-Type: application/json
 X-User-Id: {{userId}}
 
@@ -79,7 +89,7 @@ X-User-Id: {{userId}}
 }
 
 ### Task 태그 전체 교체
-POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
+PUT {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
 Content-Type: application/json
 X-User-Id: {{userId}}
 
@@ -88,7 +98,7 @@ X-User-Id: {{userId}}
 }
 
 ### Task 태그 전체 교체 - 실패 케이스: 태그 0개
-POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
+PUT {{host}}/projects/{{projectId}}/tasks/{{taskId}}/tags
 Content-Type: application/json
 X-User-Id: {{userId}}
 
@@ -110,7 +120,7 @@ X-User-Id: {{userId}}
 }
 
 ### 댓글 수정
-POST {{host}}/projects/{{projectId}}/tasks/{{taskId}}/comments/{{commentId}}/edit
+PUT {{host}}/projects/{{projectId}}/tasks/{{taskId}}/comments/{{commentId}}/edit
 Content-Type: application/json
 X-User-Id: {{userId}}
 

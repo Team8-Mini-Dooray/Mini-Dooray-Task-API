@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +38,41 @@ class TaskControllerWebMvcTest {
 
     @MockitoBean
     private TaskService taskService;
+
+    @Test
+    void getTasksReturnsProjectTasks() throws Exception {
+        when(taskService.getTasks(1L, null, "user1")).thenReturn(List.of(new TaskDto(
+                20L,
+                10L,
+                "Task",
+                "Content",
+                "user1",
+                LocalDateTime.of(2026, 5, 15, 10, 0),
+                List.of(new TagDto(100L, "Backend"))
+        )));
+
+        mockMvc.perform(get("/projects/{projectId}/tasks", 1L)
+                        .header(USER_ID_HEADER, "user1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].taskId").value(20))
+                .andExpect(jsonPath("$[0].tags[0].name").value("Backend"));
+
+        verify(taskService).getTasks(1L, null, "user1");
+    }
+
+    @Test
+    void getTasksBindsTagIdParameter() throws Exception {
+        when(taskService.getTasks(1L, 100L, "user1")).thenReturn(List.of());
+
+        mockMvc.perform(get("/projects/{projectId}/tasks", 1L)
+                        .param("tagId", "100")
+                        .header(USER_ID_HEADER, "user1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+
+        verify(taskService).getTasks(1L, 100L, "user1");
+    }
 
     @Test
     void createTaskBindsOptionalParameters() throws Exception {
@@ -123,12 +159,72 @@ class TaskControllerWebMvcTest {
     }
 
     @Test
+    void updateTaskUsesTaskService() throws Exception {
+        TaskDto response = new TaskDto(
+                20L,
+                null,
+                "Updated",
+                "Updated content",
+                "user1",
+                LocalDateTime.of(2026, 5, 15, 10, 0),
+                List.of()
+        );
+
+        when(taskService.updateTask(eq(1L), eq(20L), any(), eq("user1"))).thenReturn(response);
+
+        mockMvc.perform(put("/projects/{projectId}/tasks/{taskId}/edit", 1L, 20L)
+                        .header(USER_ID_HEADER, "user1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Updated",
+                                  "content": "Updated content"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.taskId").value(20))
+                .andExpect(jsonPath("$.title").value("Updated"))
+                .andExpect(jsonPath("$.content").value("Updated content"));
+
+        verify(taskService).updateTask(eq(1L), eq(20L), any(), eq("user1"));
+    }
+
+    @Test
     void deleteTaskReturnsNoContent() throws Exception {
         mockMvc.perform(post("/projects/{projectId}/tasks/{taskId}/delete", 1L, 20L)
                         .header(USER_ID_HEADER, "user1"))
                 .andExpect(status().isNoContent());
 
         verify(taskService).deleteTask(1L, 20L, "user1");
+    }
+
+    @Test
+    void updateTaskMilestoneUsesTaskService() throws Exception {
+        TaskDto response = new TaskDto(
+                20L,
+                10L,
+                "Task",
+                "Content",
+                "user1",
+                LocalDateTime.of(2026, 5, 15, 10, 0),
+                List.of()
+        );
+
+        when(taskService.updateTaskMilestone(eq(1L), eq(20L), any(), eq("user1"))).thenReturn(response);
+
+        mockMvc.perform(post("/projects/{projectId}/tasks/{taskId}/milestones", 1L, 20L)
+                        .header(USER_ID_HEADER, "user1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "milestoneId": 10
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.taskId").value(20))
+                .andExpect(jsonPath("$.milestoneId").value(10));
+
+        verify(taskService).updateTaskMilestone(eq(1L), eq(20L), any(), eq("user1"));
     }
 
 }
