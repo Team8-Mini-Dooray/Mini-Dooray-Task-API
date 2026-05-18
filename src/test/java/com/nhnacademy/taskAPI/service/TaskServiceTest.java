@@ -6,6 +6,7 @@ import com.nhnacademy.taskAPI.entity.ProjectStatus;
 import com.nhnacademy.taskAPI.entity.Tag;
 import com.nhnacademy.taskAPI.entity.Task;
 import com.nhnacademy.taskAPI.entity.TaskTag;
+import com.nhnacademy.taskAPI.entity.Comment;
 import com.nhnacademy.taskAPI.exception.BusinessException;
 import com.nhnacademy.taskAPI.exception.ErrorCode;
 import com.nhnacademy.taskAPI.repository.CommentRepository;
@@ -20,8 +21,10 @@ import com.nhnacademy.taskAPI.task.MilestoneDto;
 import com.nhnacademy.taskAPI.task.TagCreateRequest;
 import com.nhnacademy.taskAPI.task.TagDto;
 import com.nhnacademy.taskAPI.task.TaskCreateRequest;
+import com.nhnacademy.taskAPI.task.TaskDetailDto;
 import com.nhnacademy.taskAPI.task.TaskDto;
 import com.nhnacademy.taskAPI.task.TaskMilestoneRequest;
+import com.nhnacademy.taskAPI.task.TaskUpdateRequest;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -72,6 +75,81 @@ class TaskServiceTest {
 
     @InjectMocks
     private TaskService taskService;
+
+    @Test
+    void getTasksReturnsProjectTasksWhenTagIdIsNull() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task = task(20L, project, null);
+        Tag backend = tag(100L, project, "Backend");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByProject_ProjectId(1L)).thenReturn(List.of(task));
+        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of(new TaskTag(task, backend)));
+
+        List<TaskDto> response = taskService.getTasks(1L, null, "user1");
+
+        assertThat(response).hasSize(1);
+        assertThat(response.getFirst().taskId()).isEqualTo(20L);
+        assertThat(response.getFirst().tags()).extracting("name").containsExactly("Backend");
+    }
+
+    @Test
+    void getTasksFiltersByTagId() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task = task(20L, project, null);
+        Tag backend = tag(100L, project, "Backend");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(tagRepository.findAllByTagIdIn(anyCollection())).thenReturn(List.of(backend));
+        when(taskTagRepository.findByTask_Project_ProjectIdAndTag_TagId(1L, 100L))
+                .thenReturn(List.of(new TaskTag(task, backend)));
+        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of(new TaskTag(task, backend)));
+
+        List<TaskDto> response = taskService.getTasks(1L, 100L, "user1");
+
+        assertThat(response).hasSize(1);
+        assertThat(response.getFirst().taskId()).isEqualTo(20L);
+        assertThat(response.getFirst().tags()).extracting("tagId").containsExactly(100L);
+    }
+
+    @Test
+    void getTasksRejectsFilterTagInOtherProject() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Project otherProject = project(2L, ProjectStatus.ACTIVE);
+        Tag otherTag = tag(100L, otherProject, "Other");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(tagRepository.findAllByTagIdIn(anyCollection())).thenReturn(List.of(otherTag));
+
+        assertThatThrownBy(() -> taskService.getTasks(1L, 100L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.TAG_NOT_IN_PROJECT);
+    }
+
+    @Test
+    void getTaskReturnsDetailWithMilestoneTagsAndComments() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Milestone milestone = milestone(10L, project);
+        Task task = task(20L, project, milestone);
+        Tag backend = tag(100L, project, "Backend");
+        Comment comment = comment(30L, task, "user2", "Comment");
+
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.of(task));
+        when(commentRepository.findByTask_TaskId(20L)).thenReturn(List.of(comment));
+        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of(new TaskTag(task, backend)));
+
+        TaskDetailDto response = taskService.getTask(1L, 20L, "user1");
+
+        assertThat(response.taskId()).isEqualTo(20L);
+        assertThat(response.milestone().milestoneId()).isEqualTo(10L);
+        assertThat(response.tags()).extracting("name").containsExactly("Backend");
+        assertThat(response.comments()).extracting("content").containsExactly("Comment");
+    }
 
     @Test
     void createTaskAssignsExistingMilestoneAndTags() {
@@ -169,6 +247,42 @@ class TaskServiceTest {
     }
 
     @Test
+    void updateTaskChangesTitleAndContentButKeepsWriter() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task = task(20L, project, null);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.of(task));
+        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of());
+
+        TaskDto response = taskService.updateTask(
+                1L,
+                20L,
+                new TaskUpdateRequest("Updated", "Updated content"),
+                "user1"
+        );
+
+        assertThat(response.title()).isEqualTo("Updated");
+        assertThat(response.content()).isEqualTo("Updated content");
+        assertThat(response.writerId()).isEqualTo("user1");
+    }
+
+    @Test
+    void deleteTaskDeletesTaskInProject() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task = task(20L, project, null);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.of(task));
+
+        taskService.deleteTask(1L, 20L, "user1");
+
+        verify(taskRepository).delete(task);
+    }
+
+    @Test
     void updateTaskMilestoneRemovesMilestoneWhenRequestMilestoneIdIsNull() {
         Project project = project(1L, ProjectStatus.ACTIVE);
         Milestone milestone = milestone(10L, project);
@@ -188,6 +302,59 @@ class TaskServiceTest {
 
         assertThat(task.getMilestone()).isNull();
         assertThat(response.milestoneId()).isNull();
+    }
+
+    @Test
+    void updateTaskMilestoneAssignsExistingMilestone() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Task task = task(20L, project, null);
+        Milestone milestone = milestone(10L, project);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.of(task));
+        when(milestoneRepository.findByMilestoneIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(milestone));
+        when(taskTagRepository.findByTask_TaskId(20L)).thenReturn(List.of());
+
+        TaskDto response = taskService.updateTaskMilestone(
+                1L,
+                20L,
+                new TaskMilestoneRequest(10L),
+                "user1"
+        );
+
+        assertThat(task.getMilestone()).isEqualTo(milestone);
+        assertThat(response.milestoneId()).isEqualTo(10L);
+    }
+
+    @Test
+    void getTaskRejectsNonProjectMember() {
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(false);
+
+        assertThatThrownBy(() -> taskService.getTask(1L, 20L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NOT_PROJECT_MEMBER);
+    }
+
+    @Test
+    void updateTaskRejectsTaskInOtherProject() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(taskRepository.findByTaskIdAndProject_ProjectId(20L, 1L)).thenReturn(Optional.empty());
+        when(taskRepository.existsById(20L)).thenReturn(true);
+
+        assertThatThrownBy(() -> taskService.updateTask(
+                1L,
+                20L,
+                new TaskUpdateRequest("Updated", "Updated content"),
+                "user1"
+        ))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.TASK_NOT_IN_PROJECT);
     }
 
     @Test
@@ -236,5 +403,11 @@ class TaskServiceTest {
         Task task = new Task(project, milestone, "Task", "Content", "user1");
         ReflectionTestUtils.setField(task, "taskId", taskId);
         return task;
+    }
+
+    private Comment comment(Long commentId, Task task, String writerId, String content) {
+        Comment comment = new Comment(task, writerId, content);
+        ReflectionTestUtils.setField(comment, "commentId", commentId);
+        return comment;
     }
 }

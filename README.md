@@ -86,7 +86,9 @@ Gateway 요청 경로 기준으로 작성합니다.
 | `DORMANT` | 가능 | 가능 |
 | `TERMINATED` | 가능 | 불가 |
 
-`TERMINATED` 상태의 프로젝트에서는 조회만 가능합니다. Project, Project Member, Tag, Milestone, Task, Comment의 생성/수정/삭제 요청은 `409 PROJECT_NOT_ACTIVE`로 응답합니다.
+`TERMINATED` 상태의 프로젝트에서는 조회만 가능합니다. Project Member, Tag, Milestone, Task, Comment의 생성/수정/삭제 요청은 `409 PROJECT_NOT_ACTIVE`로 응답합니다.
+
+단, 프로젝트 관리자는 프로젝트 상태를 수동으로 변경할 수 있습니다. 따라서 Project 수정 API의 상태 변경은 `TERMINATED` 상태에서도 관리자 권한으로 허용합니다.
 
 ### 2.7 삭제 요청 규칙
 
@@ -318,7 +320,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 ### 4.4 프로젝트 수정
 
-- **Method URL**: `POST /projects/{projectId}/edit`
+- **Method URL**: `PUT /projects/{projectId}/edit`
 - **설명**: 프로젝트 이름과 상태를 수정합니다.
 - **Request DTO**: `ProjectUpdateRequest`
 - **Response DTO**: `ProjectDto`
@@ -361,7 +363,6 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 - `PROJECT_NOT_FOUND` (404): 프로젝트를 찾을 수 없습니다.
 - `NOT_PROJECT_ADMIN` (403): 요청자가 프로젝트 관리자가 아닙니다.
 - `INVALID_PROJECT_STATUS` (400): 사용할 수 없는 프로젝트 상태입니다.
-- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트는 수정할 수 없습니다.
 
 </details>
 
@@ -369,6 +370,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 <summary><strong>예외</strong></summary>
 
 1. 프로젝트 관리자만 수정할 수 있습니다.
+2. 프로젝트 관리자는 `TERMINATED` 상태의 프로젝트도 수동으로 상태 변경할 수 있습니다.
 
 </details>
 
@@ -376,25 +378,13 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 - **Method URL**: `POST /projects/{projectId}/close`
 - **설명**: 프로젝트 상태를 변경합니다. 프로젝트 종료는 `status=TERMINATED`로 처리합니다.
-- **Request DTO**: `ProjectUpdateRequest`
+- **Request DTO**: 없음
 - **Response DTO**: `ProjectDto`
 
 <details>
 <summary><strong>Header</strong></summary>
 
 - `X-User-Id` (string): `user1`
-
-</details>
-
-<details>
-<summary><strong>Request</strong></summary>
-
-```json
-{
-  "name": "Project A",
-  "status": "TERMINATED"
-}
-```
 
 </details>
 
@@ -416,7 +406,6 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 - `PROJECT_NOT_FOUND` (404): 프로젝트를 찾을 수 없습니다.
 - `NOT_PROJECT_ADMIN` (403): 요청자가 프로젝트 관리자가 아닙니다.
-- `INVALID_PROJECT_STATUS` (400): 사용할 수 없는 프로젝트 상태입니다.
 
 </details>
 
@@ -424,7 +413,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 <summary><strong>예외</strong></summary>
 
 1. 프로젝트 관리자만 상태를 변경할 수 있습니다.
-2. `ProjectUpdateRequest.status` 주석에는 `CLOSED`가 남아 있지만 종료 상태는 `TERMINATED`로 통일합니다.
+2. 요청 Body 없이 프로젝트 상태를 `TERMINATED`로 변경합니다.
 
 </details>
 
@@ -526,7 +515,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 ### 5.3 프로젝트 멤버 삭제
 
-- **Method URL**: `DELETE /projects/{projectId}/members/{userId}`
+- **Method URL**: `POST /projects/{projectId}/members/{userId}/delete`
 - **설명**: 프로젝트 멤버를 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
@@ -559,11 +548,85 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 ## 6. Task API
 
-Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상세 조회(`ProjectDetailDto`)에 포함된 `tasks`로 프로젝트의 Task 목록을 제공합니다.
+Task 전용 목록 API를 제공합니다. `tagId` Query Parameter를 전달하면 해당 태그가 포함된 Task만 필터링하여 조회합니다.
 
 구현 시 Project 상세 DTO 조립을 위해 `TaskRepository.findByProject_ProjectId(projectId)` 같은 조회 메서드가 필요할 수 있습니다.
 
-### 6.1 Task 상세 조회
+### 6.1 Task 목록 조회
+
+- **Method URL**: `GET /projects/{projectId}/tasks`
+- **설명**: 프로젝트에 속한 Task 목록을 JSON으로 반환합니다. `tagId`가 제공되면 해당 태그가 포함된 Task만 필터링하고, 파라미터가 없으면 프로젝트의 전체 Task 목록을 반환합니다.
+- **Request DTO**: 없음
+- **Response DTO**: `List<TaskDto>`
+
+<details>
+<summary><strong>Header</strong></summary>
+
+- `X-User-Id` (string): `user1`
+
+</details>
+
+<details>
+<summary><strong>Request</strong></summary>
+
+- Path Variable
+    - `projectId` (long): 프로젝트 ID
+- Query Parameter
+    - `tagId` (long, optional): 필터링할 태그 ID
+
+예시:
+
+```http
+GET /projects/1/tasks
+GET /projects/1/tasks?tagId=5
+```
+
+</details>
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+[
+  {
+    "taskId": 1,
+    "milestoneId": 10,
+    "title": "업무 제목",
+    "content": "업무 상세 내용",
+    "writerId": "user123",
+    "createdAt": "2023-10-27T10:00:00",
+    "tags": [
+      {
+        "tagId": 5,
+        "name": "Backend"
+      }
+    ]
+  }
+]
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `PROJECT_NOT_FOUND` (404): 프로젝트를 찾을 수 없습니다.
+- `TAG_NOT_FOUND` (404): 태그를 찾을 수 없습니다.
+- `TAG_NOT_IN_PROJECT` (400): 필터링할 태그가 요청한 프로젝트 소속이 아닙니다.
+- `NOT_PROJECT_MEMBER` (403): 요청자가 프로젝트 멤버가 아닙니다.
+
+</details>
+
+<details>
+<summary><strong>예외</strong></summary>
+
+1. 프로젝트 멤버만 조회할 수 있습니다.
+2. `tagId`가 없으면 프로젝트의 전체 Task 목록을 반환합니다.
+3. `tagId`가 있으면 해당 Tag가 연결된 Task 목록만 반환합니다.
+
+</details>
+
+### 6.2 Task 상세 조회
 
 - **Method URL**: `GET /projects/{projectId}/tasks/{taskId}`
 - **설명**: Task 상세 정보를 조회합니다.
@@ -621,7 +684,7 @@ Task 전용 목록 API는 별도로 제공하지 않습니다. 프로젝트 상�
 
 </details>
 
-### 6.2 Task 생성
+### 6.3 Task 생성
 
 - **Method URL**: `POST /projects/{projectId}/tasks`
 - **설명**: 프로젝트에 Task를 생성합니다. 요청 파라미터를 함께 전달하면 기존 마일스톤/태그를 즉시 할당하거나 새 마일스톤/태그를 생성해 함께 할당할 수 있습니다.
@@ -716,9 +779,9 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 </details>
 
-### 6.3 Task 수정
+### 6.4 Task 수정
 
-- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/edit`
+- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/edit`
 - **설명**: Task 제목과 내용을 수정합니다.
 - **Request DTO**: `TaskUpdateRequest`
 - **Response DTO**: `TaskDto`
@@ -760,7 +823,7 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 </details>
 
-### 6.4 Task 삭제
+### 6.5 Task 삭제
 
 - **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/delete`
 - **설명**: Task를 삭제합니다.
@@ -782,7 +845,7 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 </details>
 
-### 6.5 Task 마일스톤 설정
+### 6.6 Task 마일스톤 설정
 
 - **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/milestones`
 - **설명**: Task에 마일스톤을 설정합니다.
@@ -817,9 +880,9 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 </details>
 
-### 6.6 Task 태그 설정
+### 6.7 Task 태그 설정
 
-- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/tags`
+- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/tags`
 - **설명**: Task에 Tag를 설정합니다.
 - **Request DTO**: `TaskTagRequest`
 - **Response DTO**: `TaskDto`
@@ -964,7 +1027,7 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 ### 7.4 마일스톤 수정
 
-- **Method URL**: `POST /projects/{projectId}/milestones/{milestoneId}/edit`
+- **Method URL**: `PUT /projects/{projectId}/milestones/{milestoneId}/edit`
 - **설명**: 마일스톤을 수정합니다.
 - **Request DTO**: `MilestoneCreateRequest`
 - **Response DTO**: `MilestoneDto`
@@ -1090,7 +1153,7 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 ### 8.3 태그 수정
 
-- **Method URL**: `POST /projects/{projectId}/tags/{tagId}/edit`
+- **Method URL**: `PUT /projects/{projectId}/tags/{tagId}/edit`
 - **설명**: 태그 이름을 수정합니다.
 - **Request DTO**: `TagCreateRequest`
 - **Response DTO**: `TagDto`
@@ -1147,12 +1210,51 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 ## 9. Comment API
 
-### 9.1 댓글 생성
+### 9.1 댓글 목록 조회
+
+- **Method URL**: `GET /projects/{projectId}/tasks/{taskId}/comments`
+- **설명**: Task에 등록된 댓글 목록을 조회합니다.
+- **Request DTO**: 없음
+- **Response DTO**: `List<CommentDto>`
+
+<details>
+<summary><strong>Header</strong></summary>
+
+- `X-User-Id` (string): `user1`
+
+</details>
+
+<details>
+<summary><strong>Response</strong></summary>
+
+```json
+[
+  {
+    "commentId": 1,
+    "writerId": "user1",
+    "content": "Comment Content",
+    "createdAt": "2026-05-15T10:00:00"
+  }
+]
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `TASK_NOT_FOUND` (404): Task를 찾을 수 없습니다.
+- `TASK_NOT_IN_PROJECT` (400): 해당 Task가 요청한 프로젝트 소속이 아닙니다.
+- `NOT_PROJECT_MEMBER` (403): 요청자가 프로젝트 멤버가 아닙니다.
+
+</details>
+
+### 9.2 댓글 생성
 
 - **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments`
 - **설명**: Task에 댓글을 생성합니다.
 - **Request DTO**: `CommentCreateRequest`
-- **Response DTO**: 없음
+- **Response DTO**: `CommentDto`
 
 <details>
 <summary><strong>Request</strong></summary>
@@ -1165,12 +1267,36 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 </details>
 
-### 9.2 댓글 수정
+<details>
+<summary><strong>Response</strong></summary>
 
-- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit`
+```json
+{
+  "commentId": 1,
+  "writerId": "user1",
+  "content": "Comment Content",
+  "createdAt": "2026-05-15T10:00:00"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `TASK_NOT_FOUND` (404): Task를 찾을 수 없습니다.
+- `TASK_NOT_IN_PROJECT` (400): 해당 Task가 요청한 프로젝트 소속이 아닙니다.
+- `NOT_PROJECT_MEMBER` (403): 요청자가 프로젝트 멤버가 아닙니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 댓글을 생성할 수 없습니다.
+
+</details>
+
+### 9.3 댓글 수정
+
+- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/comments/{commentId}/edit`
 - **설명**: 댓글 내용을 수정합니다.
 - **Request DTO**: `CommentCreateRequest`
-- **Response DTO**: 없음
+- **Response DTO**: `CommentDto`
 
 <details>
 <summary><strong>Request</strong></summary>
@@ -1184,6 +1310,30 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 </details>
 
 <details>
+<summary><strong>Response</strong></summary>
+
+```json
+{
+  "commentId": 1,
+  "writerId": "user1",
+  "content": "Updated Comment Content",
+  "createdAt": "2026-05-15T10:00:00"
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Error</strong></summary>
+
+- `COMMENT_NOT_FOUND` (404): 댓글을 찾을 수 없습니다.
+- `COMMENT_NOT_IN_TASK` (400): 해당 댓글이 요청한 Task 소속이 아닙니다.
+- `NOT_COMMENT_WRITER` (403): 요청자가 댓글 작성자가 아닙니다.
+- `PROJECT_NOT_ACTIVE` (409): 종료 상태의 프로젝트에서는 댓글을 수정할 수 없습니다.
+
+</details>
+
+<details>
 <summary><strong>예외</strong></summary>
 
 1. 댓글 작성자만 수정할 수 있습니다.
@@ -1191,7 +1341,7 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 </details>
 
-### 9.3 댓글 삭제
+### 9.4 댓글 삭제
 
 - **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/comments/{commentId}/delete`
 - **설명**: 댓글을 삭제합니다.
