@@ -2,6 +2,7 @@ package com.nhnacademy.taskAPI.controller;
 
 import com.nhnacademy.taskAPI.service.ProjectMemberService;
 import com.nhnacademy.taskAPI.task.ProjectMemberDto;
+import com.nhnacademy.taskAPI.task.ProjectMemberRequest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +30,9 @@ class ProjectMemberControllerWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @MockitoBean
     private ProjectMemberService projectMemberService;
 
@@ -38,7 +43,7 @@ class ProjectMemberControllerWebMvcTest {
                 new ProjectMemberDto("user2")
         ));
 
-        mockMvc.perform(get("/projects/{projectId}/members", 1L)
+        mockMvc.perform(get("/projects/1/members")
                         .header(USER_ID_HEADER, "user1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
@@ -50,30 +55,27 @@ class ProjectMemberControllerWebMvcTest {
 
     @Test
     void addMemberUsesProjectMemberService() throws Exception {
-        ProjectMemberDto response = new ProjectMemberDto("user2");
+        ProjectMemberRequest request = new ProjectMemberRequest("user2");
 
-        when(projectMemberService.addMember(eq(1L), eq("user1"), any())).thenReturn(response);
+        when(projectMemberService.addMember(eq(1L), eq("admin"), any(ProjectMemberRequest.class)))
+                .thenReturn(new ProjectMemberDto("user2"));
 
-        mockMvc.perform(post("/projects/{projectId}/members", 1L)
-                        .header(USER_ID_HEADER, "user1")
+        mockMvc.perform(post("/projects/1/members")
+                        .header(USER_ID_HEADER, "admin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "userId": "user2"
-                                }
-                                """))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value("user2"));
 
-        verify(projectMemberService).addMember(eq(1L), eq("user1"), any());
+        verify(projectMemberService).addMember(eq(1L), eq("admin"), any(ProjectMemberRequest.class));
     }
 
     @Test
     void removeMemberReturnsNoContent() throws Exception {
-        mockMvc.perform(post("/projects/{projectId}/members/{userId}/delete", 1L, "user2")
-                        .header(USER_ID_HEADER, "user1"))
+        mockMvc.perform(post("/projects/1/members/user2/delete")
+                        .header(USER_ID_HEADER, "admin"))
                 .andExpect(status().isNoContent());
 
-        verify(projectMemberService).removeMember(1L, "user1", "user2");
+        verify(projectMemberService).removeMember(1L, "admin", "user2");
     }
 }

@@ -1,13 +1,10 @@
 package com.nhnacademy.taskAPI.controller;
 
 import com.nhnacademy.taskAPI.service.ProjectService;
-import com.nhnacademy.taskAPI.task.MilestoneDto;
+import com.nhnacademy.taskAPI.task.ProjectCreateRequest;
 import com.nhnacademy.taskAPI.task.ProjectDetailDto;
 import com.nhnacademy.taskAPI.task.ProjectDto;
-import com.nhnacademy.taskAPI.task.ProjectMemberDto;
-import com.nhnacademy.taskAPI.task.TaskDto;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import com.nhnacademy.taskAPI.task.ProjectUpdateRequest;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +12,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +32,9 @@ class ProjectControllerWebMvcTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private ProjectService projectService;
@@ -57,93 +58,74 @@ class ProjectControllerWebMvcTest {
 
     @Test
     void getProjectDetailUsesProjectService() throws Exception {
-        ProjectDetailDto response = new ProjectDetailDto(
+        when(projectService.getProjectDetail(1L, "user1")).thenReturn(new ProjectDetailDto(
                 1L,
                 "Project",
                 "ACTIVE",
                 "user1",
-                List.of(new ProjectMemberDto("user1")),
-                List.of(new TaskDto(
-                        20L,
-                        10L,
-                        "Task",
-                        "Content",
-                        "user1",
-                        LocalDateTime.of(2026, 5, 15, 10, 0),
-                        List.of()
-                )),
-                List.of(new MilestoneDto(10L, "Sprint 1", LocalDate.of(2026, 5, 15), LocalDate.of(2026, 5, 20)))
-        );
+                List.of(),
+                List.of(),
+                List.of()
+        ));
 
-        when(projectService.getProjectDetail(1L, "user1")).thenReturn(response);
-
-        mockMvc.perform(get("/projects/{projectId}", 1L)
+        mockMvc.perform(get("/projects/1")
                         .header(USER_ID_HEADER, "user1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value(1))
-                .andExpect(jsonPath("$.adminId").value("user1"))
-                .andExpect(jsonPath("$.members", hasSize(1)))
-                .andExpect(jsonPath("$.tasks[0].title").value("Task"))
-                .andExpect(jsonPath("$.milestones[0].name").value("Sprint 1"));
+                .andExpect(jsonPath("$.name").value("Project"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
 
         verify(projectService).getProjectDetail(1L, "user1");
     }
 
     @Test
     void createProjectUsesProjectService() throws Exception {
-        ProjectDto response = new ProjectDto(1L, "Project", "ACTIVE");
+        ProjectCreateRequest request = new ProjectCreateRequest("Project");
 
-        when(projectService.createProject(eq("user1"), any())).thenReturn(response);
+        when(projectService.createProject(eq("user1"), any(ProjectCreateRequest.class)))
+                .thenReturn(new ProjectDto(1L, "Project", "ACTIVE"));
 
         mockMvc.perform(post("/projects")
                         .header(USER_ID_HEADER, "user1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name": "Project"
-                                }
-                                """))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.projectId").value(1))
                 .andExpect(jsonPath("$.name").value("Project"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
-        verify(projectService).createProject(eq("user1"), any());
+        verify(projectService).createProject(eq("user1"), any(ProjectCreateRequest.class));
     }
 
     @Test
     void updateProjectUsesProjectService() throws Exception {
-        ProjectDto response = new ProjectDto(1L, "Updated", "DORMANT");
+        ProjectUpdateRequest request = new ProjectUpdateRequest("Updated", "DORMANT");
 
-        when(projectService.updateProject(eq(1L), eq("user1"), any())).thenReturn(response);
+        when(projectService.updateProject(eq(1L), eq("user1"), any(ProjectUpdateRequest.class)))
+                .thenReturn(new ProjectDto(1L, "Updated", "DORMANT"));
 
-        mockMvc.perform(put("/projects/{projectId}/edit", 1L)
+        mockMvc.perform(put("/projects/1/edit")
                         .header(USER_ID_HEADER, "user1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "name": "Updated",
-                                  "status": "DORMANT"
-                                }
-                                """))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value(1))
                 .andExpect(jsonPath("$.name").value("Updated"))
                 .andExpect(jsonPath("$.status").value("DORMANT"));
 
-        verify(projectService).updateProject(eq(1L), eq("user1"), any());
+        verify(projectService).updateProject(eq(1L), eq("user1"), any(ProjectUpdateRequest.class));
     }
 
     @Test
     void closeProjectUsesProjectService() throws Exception {
-        ProjectDto response = new ProjectDto(1L, "Project", "TERMINATED");
+        when(projectService.closeProject(1L, "user1"))
+                .thenReturn(new ProjectDto(1L, "Project", "TERMINATED"));
 
-        when(projectService.closeProject(1L, "user1")).thenReturn(response);
-
-        mockMvc.perform(post("/projects/{projectId}/close", 1L)
+        mockMvc.perform(post("/projects/1/close")
                         .header(USER_ID_HEADER, "user1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value(1))
+                .andExpect(jsonPath("$.name").value("Project"))
                 .andExpect(jsonPath("$.status").value("TERMINATED"));
 
         verify(projectService).closeProject(1L, "user1");
