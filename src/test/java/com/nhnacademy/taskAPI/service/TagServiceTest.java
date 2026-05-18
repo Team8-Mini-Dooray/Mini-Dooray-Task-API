@@ -23,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,11 +71,9 @@ class TagServiceTest {
             return tag;
         });
 
-        TagDto response = tagService.createTag(
-                1L,
-                "user1",
-                new TagCreateRequest("Backend")
-        );
+        TagCreateRequest request = new TagCreateRequest("Backend");
+
+        TagDto response = tagService.createTag(1L, "user1", request);
 
         assertThat(response.tagId()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("Backend");
@@ -89,11 +88,9 @@ class TagServiceTest {
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
         when(tagRepository.existsByProject_ProjectIdAndName(1L, "Backend")).thenReturn(true);
 
-        assertThatThrownBy(() -> tagService.createTag(
-                1L,
-                "user1",
-                new TagCreateRequest("Backend")
-        ))
+        TagCreateRequest request = new TagCreateRequest("Backend");
+
+        assertThatThrownBy(() -> tagService.createTag(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_TAG_NAME);
@@ -106,11 +103,9 @@ class TagServiceTest {
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
 
-        assertThatThrownBy(() -> tagService.createTag(
-                1L,
-                "user1",
-                new TagCreateRequest("Backend")
-        ))
+        TagCreateRequest request = new TagCreateRequest("Backend");
+
+        assertThatThrownBy(() -> tagService.createTag(1L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.PROJECT_NOT_ACTIVE);
@@ -126,12 +121,9 @@ class TagServiceTest {
         when(tagRepository.findByTagIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(tag));
         when(tagRepository.existsByProject_ProjectIdAndName(1L, "Backend Updated")).thenReturn(false);
 
-        TagDto response = tagService.updateTag(
-                1L,
-                10L,
-                "user1",
-                new TagCreateRequest("Backend Updated")
-        );
+        TagCreateRequest request = new TagCreateRequest("Backend Updated");
+
+        TagDto response = tagService.updateTag(1L, 10L, "user1", request);
 
         assertThat(response.tagId()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("Backend Updated");
@@ -148,15 +140,45 @@ class TagServiceTest {
         when(tagRepository.findByTagIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(tag));
         when(tagRepository.existsByProject_ProjectIdAndName(1L, "Frontend")).thenReturn(true);
 
-        assertThatThrownBy(() -> tagService.updateTag(
-                1L,
-                10L,
-                "user1",
-                new TagCreateRequest("Frontend")
-        ))
+        TagCreateRequest request = new TagCreateRequest("Frontend");
+
+        assertThatThrownBy(() -> tagService.updateTag(1L, 10L, "user1", request))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.DUPLICATE_TAG_NAME);
+
+    }
+
+    @Test
+    void updateTagWithSameNameDoesNotCheckDuplicateName() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        Tag tag = tag(10L, project, "Backend");
+        TagCreateRequest request = new TagCreateRequest("Backend");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(tagRepository.findByTagIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.of(tag));
+
+        TagDto response = tagService.updateTag(1L, 10L, "user1", request);
+
+        assertThat(response.tagId()).isEqualTo(10L);
+        assertThat(response.name()).isEqualTo("Backend");
+        verify(tagRepository, never()).existsByProject_ProjectIdAndName(1L, "Backend");
+    }
+
+    @Test
+    void updateTagRejectsNotFoundTag() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+        TagCreateRequest request = new TagCreateRequest("Backend Updated");
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1")).thenReturn(true);
+        when(tagRepository.findByTagIdAndProject_ProjectId(10L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tagService.updateTag(1L, 10L, "user1", request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.TAG_NOT_FOUND);
     }
 
     @Test
@@ -171,6 +193,46 @@ class TagServiceTest {
         tagService.deleteTag(1L, 10L, "user1");
 
         verify(tagRepository).delete(tag);
+    }
+
+    @Test
+    void getTagsRejectsBlankUserId() {
+        assertThatThrownBy(() -> tagService.getTags(1L, " "))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getTagsRejectsNullUserId() {
+        assertThatThrownBy(() -> tagService.getTags(1L, null))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.MISSING_USER_ID);
+    }
+
+    @Test
+    void getTagsRejectsNotFoundProject() {
+        when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> tagService.getTags(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
+    }
+
+    @Test
+    void getTagsRejectsNonMember() {
+        Project project = project(1L, ProjectStatus.ACTIVE);
+
+        when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProject_ProjectIdAndUserId(1L, "user1"))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> tagService.getTags(1L, "user1"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.NOT_PROJECT_MEMBER);
     }
 
     private Project project(Long projectId, ProjectStatus status) {

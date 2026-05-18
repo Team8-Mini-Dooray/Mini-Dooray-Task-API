@@ -1,5 +1,6 @@
 package com.nhnacademy.taskAPI.controller;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import com.nhnacademy.taskAPI.service.TaskTagService;
 import com.nhnacademy.taskAPI.task.TagDto;
 import com.nhnacademy.taskAPI.task.TaskDto;
@@ -46,7 +47,7 @@ class TaskTagControllerWebMvcTest {
 
         when(taskTagService.updateTaskTags(eq(1L), eq(20L), any(), eq("user1"))).thenReturn(response);
 
-        mockMvc.perform(post("/projects/{projectId}/tasks/{taskId}/tags", 1L, 20L)
+        mockMvc.perform(put("/projects/{projectId}/tasks/{taskId}/tags", 1L, 20L)
                         .header(USER_ID_HEADER, "user1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
