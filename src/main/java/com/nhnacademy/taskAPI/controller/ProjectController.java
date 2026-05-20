@@ -51,7 +51,7 @@ public class ProjectController {
     ) {
         return ResponseEntity.ok(projectService.updateProject(projectId, userId, request));
     }
-    @PostMapping("/{projectId}/close")
+    @PutMapping("/{projectId}/close")
     public ResponseEntity<ProjectDto> closeProject(
             @PathVariable Long projectId,
             @RequestHeader("X-User-Id") String userId
