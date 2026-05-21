@@ -376,7 +376,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 ### 4.5 프로젝트 종료
 
-- **Method URL**: `POST /projects/{projectId}/close`
+- **Method URL**: `PUT /projects/{projectId}/close`
 - **설명**: 프로젝트 상태를 변경합니다. 프로젝트 종료는 `status=TERMINATED`로 처리합니다.
 - **Request DTO**: 없음
 - **Response DTO**: `ProjectDto`
@@ -515,7 +515,7 @@ Gateway의 HTML form 요청을 고려하여 삭제 요청은 `POST /delete` 형�
 
 ### 5.3 프로젝트 멤버 삭제
 
-- **Method URL**: `POST /projects/{projectId}/members/{userId}/delete`
+- **Method URL**: `DELETE /projects/{projectId}/members/{userId}`
 - **설명**: 프로젝트 멤버를 삭제합니다.
 - **Request DTO**: 없음
 - **Response DTO**: 없음
@@ -882,7 +882,7 @@ POST /projects/1/tasks?milestoneId=1&tagIds=1&tagIds=2&newTagName=Frontend
 
 ### 6.7 Task 태그 설정
 
-- **Method URL**: `PUT /projects/{projectId}/tasks/{taskId}/tags`
+- **Method URL**: `POST /projects/{projectId}/tasks/{taskId}/tags`
 - **설명**: Task에 Tag를 설정합니다.
 - **Request DTO**: `TaskTagRequest`
 - **Response DTO**: `TaskDto`
