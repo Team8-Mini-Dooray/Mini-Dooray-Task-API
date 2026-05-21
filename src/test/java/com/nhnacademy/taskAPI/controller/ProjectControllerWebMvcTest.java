@@ -121,7 +121,7 @@ class ProjectControllerWebMvcTest {
         when(projectService.closeProject(1L, "user1"))
                 .thenReturn(new ProjectDto(1L, "Project", "TERMINATED"));
 
-        mockMvc.perform(post("/projects/1/close")
+        mockMvc.perform(put("/projects/1/close")
                         .header(USER_ID_HEADER, "user1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value(1))
