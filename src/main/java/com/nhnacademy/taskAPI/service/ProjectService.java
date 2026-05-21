@@ -157,7 +157,8 @@ public class ProjectService {
         return new ProjectDto(
                 project.getProjectId(),
                 project.getName(),
-                project.getStatus().name()
+                project.getStatus().name(),
+                project.getAdminId()
         );
     }
 }

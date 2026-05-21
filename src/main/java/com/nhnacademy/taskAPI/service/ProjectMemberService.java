@@ -57,15 +57,23 @@ public class ProjectMemberService {
         validateUserId(userId);
 
         Project project = getProject(projectId);
-        validateProjectAdmin(project, userId);
         validateProjectWritable(project);
+
+        boolean isAdmin = project.getAdminId().equals(userId);
+        boolean isSelfLeaving = userId.equals(targetUserId);
+
+        if(!isAdmin && !isSelfLeaving) {
+            throw new BusinessException(ErrorCode.ADMIN_MEMBER_CANNOT_BE_REMOVED);
+        }
 
         if (project.getAdminId().equals(targetUserId)) {
             throw new BusinessException(ErrorCode.ADMIN_MEMBER_CANNOT_BE_REMOVED);
         }
+
         ProjectMember projectMember = projectMemberRepository
                 .findByProject_ProjectIdAndUserId(projectId, targetUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_MEMBER_NOT_FOUND));
+
         projectMemberRepository.delete(projectMember);
     }
     private Project getProject (Long projectId){

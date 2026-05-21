@@ -42,7 +42,7 @@ class ProjectControllerWebMvcTest {
     @Test
     void getProjectsUsesProjectService() throws Exception {
         when(projectService.getProjects("user1")).thenReturn(List.of(
-                new ProjectDto(1L, "Project", "ACTIVE")
+                new ProjectDto(1L, "Project", "ACTIVE", "user1")
         ));
 
         mockMvc.perform(get("/projects")
@@ -83,7 +83,7 @@ class ProjectControllerWebMvcTest {
         ProjectCreateRequest request = new ProjectCreateRequest("Project");
 
         when(projectService.createProject(eq("user1"), any(ProjectCreateRequest.class)))
-                .thenReturn(new ProjectDto(1L, "Project", "ACTIVE"));
+                .thenReturn(new ProjectDto(1L, "Project", "ACTIVE", "user1"));
 
         mockMvc.perform(post("/projects")
                         .header(USER_ID_HEADER, "user1")
@@ -102,7 +102,7 @@ class ProjectControllerWebMvcTest {
         ProjectUpdateRequest request = new ProjectUpdateRequest("Updated", "DORMANT");
 
         when(projectService.updateProject(eq(1L), eq("user1"), any(ProjectUpdateRequest.class)))
-                .thenReturn(new ProjectDto(1L, "Updated", "DORMANT"));
+                .thenReturn(new ProjectDto(1L, "Updated", "DORMANT", "user1"));
 
         mockMvc.perform(put("/projects/1/edit")
                         .header(USER_ID_HEADER, "user1")
@@ -119,7 +119,7 @@ class ProjectControllerWebMvcTest {
     @Test
     void closeProjectUsesProjectService() throws Exception {
         when(projectService.closeProject(1L, "user1"))
-                .thenReturn(new ProjectDto(1L, "Project", "TERMINATED"));
+                .thenReturn(new ProjectDto(1L, "Project", "TERMINATED", "user1"));
 
         mockMvc.perform(put("/projects/1/close")
                         .header(USER_ID_HEADER, "user1"))
