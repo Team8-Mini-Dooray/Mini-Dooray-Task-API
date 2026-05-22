@@ -78,7 +78,7 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateTask(projectId, taskId, request, userId));
     }
 
-    @PostMapping("/{taskId}/delete")
+    @DeleteMapping("/{taskId}")
     public ResponseEntity<Void> deleteTask(
             @PathVariable Long projectId,
             @PathVariable Long taskId,
